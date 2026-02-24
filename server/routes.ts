@@ -7,21 +7,81 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from "express";
+import { WebSocketServer, WebSocket } from "ws";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Keep original extension if possible, but standard multer dest is fine
 const upload = multer({ dest: UPLOAD_DIR });
+
+const onlineUsers = new Map<WebSocket, string>();
+const typingUsers = new Set<string>();
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
-  // Serve static uploads
+  // WebSocket setup
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/chat-ws'
+  });
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        
+        if (msg.type === "join" && msg.username) {
+          onlineUsers.set(ws, msg.username);
+          broadcast({ 
+            type: "userList", 
+            users: Array.from(onlineUsers.values()),
+            count: onlineUsers.size 
+          });
+        } else if (msg.type === "typing" && msg.username) {
+          typingUsers.add(msg.username);
+          broadcast({ type: "typing", users: Array.from(typingUsers) });
+          
+          setTimeout(() => {
+            typingUsers.delete(msg.username);
+            broadcast({ type: "typing", users: Array.from(typingUsers) });
+          }, 3000);
+        } else if (msg.type === "stopTyping" && msg.username) {
+          typingUsers.delete(msg.username);
+          broadcast({ type: "typing", users: Array.from(typingUsers) });
+        }
+      } catch (e) {
+        console.error("WebSocket message error:", e);
+      }
+    });
+
+    ws.on("close", () => {
+      const username = onlineUsers.get(ws);
+      onlineUsers.delete(ws);
+      if (username) {
+        typingUsers.delete(username);
+      }
+      broadcast({ 
+        type: "userList", 
+        users: Array.from(onlineUsers.values()),
+        count: onlineUsers.size 
+      });
+    });
+  });
+
+  function broadcast(data: any) {
+    const message = JSON.stringify(data);
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  }
+
   app.use('/uploads', express.static(UPLOAD_DIR));
 
   app.get(api.messages.list.path, async (req, res) => {
@@ -33,6 +93,7 @@ export async function registerRoutes(
     try {
       const input = api.messages.create.input.parse(req.body);
       const msg = await storage.createMessage(input);
+      broadcast({ type: "newMessage", message: msg });
       res.status(201).json(msg);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -49,10 +110,29 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    
-    // Using multer's default generated filename which has no extension
-    // The browser will typically sniff the MIME type based on content or we can serve it generally
     res.status(201).json({ filename: req.file.filename });
+  });
+
+  app.get("/api/giphy/search", async (req, res) => {
+    const query = req.query.q as string;
+    if (!query) {
+      return res.status(400).json({ message: "Query required" });
+    }
+
+    const apiKey = process.env.GIPHY_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ message: "Giphy API key not configured" });
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=20`
+      );
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch GIFs" });
+    }
   });
 
   return httpServer;

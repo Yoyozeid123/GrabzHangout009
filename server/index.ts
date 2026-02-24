@@ -60,6 +60,24 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize database tables
+  try {
+    const { sql } = await import("drizzle-orm");
+    const { db } = await import("./db");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        type TEXT NOT NULL,
+        content TEXT NOT NULL,
+        username TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    log("Database tables initialized");
+  } catch (err) {
+    log("Database initialization error: " + err);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

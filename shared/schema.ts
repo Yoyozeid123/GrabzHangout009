@@ -4,8 +4,9 @@ import { z } from "zod";
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  type: text("type").notNull(), // 'text' | 'image'
-  content: text("content").notNull(), // text content or image URL
+  type: text("type").notNull(), // 'text' | 'image' | 'gif'
+  content: text("content").notNull(), // text content or image/gif URL
+  username: text("username").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
