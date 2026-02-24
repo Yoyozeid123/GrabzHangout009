@@ -57,7 +57,7 @@ export default function Home() {
   return (
     <div 
       className="min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black"
-      style={{ backgroundImage: `url(${bgGif})`, backgroundRepeat: "repeat" }}
+      style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
       {/* Global Scanlines Overlay */}
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
