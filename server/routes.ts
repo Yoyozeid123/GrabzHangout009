@@ -21,7 +21,7 @@ const storage_multer = multer({
 const upload = storage_multer.single("file");
 const uploadVoice = storage_multer.single("voice");
 
-const onlineUsers = new Map<WebSocket, string>();
+const onlineUsers = new Map<WebSocket, { username: string; room: string }>();
 const typingUsers = new Set<string>();
 
 // Simple NSFW keyword filter (no AWS needed)
@@ -44,34 +44,37 @@ export async function registerRoutes(
   });
 
   wss.on("connection", (ws) => {
+    let currentRoom = "main";
+    
     ws.on("message", (data) => {
       try {
         const msg = JSON.parse(data.toString());
         
         if (msg.type === "join" && msg.username) {
-          onlineUsers.set(ws, msg.username);
-          broadcast({ 
+          currentRoom = msg.room || "main";
+          onlineUsers.set(ws, { username: msg.username, room: currentRoom });
+          broadcastToRoom(currentRoom, { 
             type: "userList", 
-            users: Array.from(onlineUsers.values()),
-            count: onlineUsers.size 
+            users: getUsersInRoom(currentRoom),
+            count: getUsersInRoom(currentRoom).length
           });
         } else if (msg.type === "typing" && msg.username) {
           typingUsers.add(msg.username);
-          broadcast({ type: "typing", users: Array.from(typingUsers) });
+          broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers) });
           
           setTimeout(() => {
             typingUsers.delete(msg.username);
-            broadcast({ type: "typing", users: Array.from(typingUsers) });
+            broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers) });
           }, 3000);
         } else if (msg.type === "stopTyping" && msg.username) {
           typingUsers.delete(msg.username);
-          broadcast({ type: "typing", users: Array.from(typingUsers) });
+          broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers) });
         } else if (msg.type === "confetti") {
-          broadcast({ type: "confetti" });
+          broadcastToRoom(currentRoom, { type: "confetti" });
         } else if (msg.type === "jumpscare") {
-          broadcast({ type: "jumpscare" });
+          broadcastToRoom(currentRoom, { type: "jumpscare" });
         } else if (msg.type === "game") {
-          broadcast({ type: "game", data: msg.data });
+          broadcastToRoom(currentRoom, { type: "game", data: msg.data });
         }
       } catch (e) {
         console.error("WebSocket message error:", e);
@@ -79,18 +82,34 @@ export async function registerRoutes(
     });
 
     ws.on("close", () => {
-      const username = onlineUsers.get(ws);
+      const userData = onlineUsers.get(ws);
       onlineUsers.delete(ws);
-      if (username) {
-        typingUsers.delete(username);
+      if (userData) {
+        typingUsers.delete(userData.username);
+        broadcastToRoom(userData.room, { 
+          type: "userList", 
+          users: getUsersInRoom(userData.room),
+          count: getUsersInRoom(userData.room).length
+        });
       }
-      broadcast({ 
-        type: "userList", 
-        users: Array.from(onlineUsers.values()),
-        count: onlineUsers.size 
-      });
     });
   });
+
+  function getUsersInRoom(room: string): string[] {
+    return Array.from(onlineUsers.values())
+      .filter(u => u.room === room)
+      .map(u => u.username);
+  }
+
+  function broadcastToRoom(room: string, data: any) {
+    const message = JSON.stringify(data);
+    wss.clients.forEach((client) => {
+      const userData = onlineUsers.get(client);
+      if (client.readyState === WebSocket.OPEN && userData?.room === room) {
+        client.send(message);
+      }
+    });
+  }
 
   function broadcast(data: any) {
     const message = JSON.stringify(data);
@@ -104,7 +123,8 @@ export async function registerRoutes(
   app.use('/uploads', express.static(UPLOAD_DIR));
 
   app.get(api.messages.list.path, async (req, res) => {
-    const msgs = await storage.getMessages();
+    const room = (req.query.room as string) || "main";
+    const msgs = await storage.getMessages(room);
     res.json(msgs);
   });
 

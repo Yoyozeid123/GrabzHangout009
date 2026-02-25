@@ -103,7 +103,7 @@ export default function Home() {
     }
   }, []);
   
-  const { data: messages = [], isLoading } = useMessages();
+  const { data: messages = [], isLoading } = useMessages(roomName);
   const sendMessage = useSendMessage();
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
@@ -465,7 +465,7 @@ export default function Home() {
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] animate-fade-in-down">
           <div className="bg-black/90 border-4 border-[#00ff00] box-shadow-retro px-6 py-3">
             <p className="text-[#00ff00] text-2xl text-shadow-neon text-center">
-              ✨ WELCOME TO GRABZHANGOUT009, {username?.toUpperCase()}! ✨
+              ✨ WELCOME TO ROOM: {roomName.toUpperCase()}, {username?.toUpperCase()}! ✨
             </p>
           </div>
         </div>

@@ -20,7 +20,7 @@ export function useWebSocket(username: string | null, room: string = "main") {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({ type: "join", username }));
+      ws.send(JSON.stringify({ type: "join", username, room }));
     };
 
     ws.onmessage = (event) => {

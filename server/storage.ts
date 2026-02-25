@@ -3,7 +3,7 @@ import { messages, users, type InsertMessage, type Message, type User } from "@s
 import { desc, eq, lt, sql } from "drizzle-orm";
 
 export interface IStorage {
-  getMessages(): Promise<Message[]>;
+  getMessages(room?: string): Promise<Message[]>;
   createMessage(msg: InsertMessage): Promise<Message>;
   deleteMessage(id: number): Promise<void>;
   deleteOldMessages(): Promise<number>;
@@ -12,9 +12,12 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getMessages(): Promise<Message[]> {
-    // Return last 50 messages
-    const msgs = await db.select().from(messages).orderBy(desc(messages.createdAt)).limit(50);
+  async getMessages(room: string = "main"): Promise<Message[]> {
+    // Return last 50 messages for the room
+    const msgs = await db.select().from(messages)
+      .where(eq(messages.room, room))
+      .orderBy(desc(messages.createdAt))
+      .limit(50);
     return msgs.reverse();
   }
 

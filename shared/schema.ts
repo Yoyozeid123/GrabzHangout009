@@ -7,6 +7,7 @@ export const messages = pgTable("messages", {
   type: text("type").notNull(), // 'text' | 'image' | 'gif' | 'voice'
   content: text("content").notNull(), // text content or image/gif/voice URL
   username: text("username").notNull(),
+  room: text("room").notNull().default("main"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

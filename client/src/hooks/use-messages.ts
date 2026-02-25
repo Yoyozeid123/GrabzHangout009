@@ -13,11 +13,11 @@ function parseWithLogging<T>(schema: any, data: unknown, label: string): T {
   return result.data;
 }
 
-export function useMessages() {
+export function useMessages(room: string = "main") {
   return useQuery({
-    queryKey: [api.messages.list.path],
+    queryKey: [api.messages.list.path, room],
     queryFn: async () => {
-      const res = await fetch(api.messages.list.path, { credentials: "include" });
+      const res = await fetch(`${api.messages.list.path}?room=${encodeURIComponent(room)}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch messages");
       const data = await res.json();
       return parseWithLogging<any[]>(api.messages.list.responses[200], data, "messages.list");
