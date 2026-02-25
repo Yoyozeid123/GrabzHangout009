@@ -118,6 +118,26 @@ export default function Home() {
     fetchPfps();
   }, [messages]);
 
+  useEffect(() => {
+    // Load own pfp from localStorage on mount
+    if (username) {
+      const savedPfp = localStorage.getItem(`pfp_${username}`);
+      if (savedPfp) {
+        setUserPfps(prev => ({ ...prev, [username]: savedPfp }));
+      } else {
+        // Fetch from server
+        fetch(`/api/users/${username}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.pfp) {
+              setUserPfps(prev => ({ ...prev, [username]: data.pfp }));
+              localStorage.setItem(`pfp_${username}`, data.pfp);
+            }
+          });
+      }
+    }
+  }, [username]);
+
   const handleSetUsername = (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameInput.trim()) return;
@@ -248,6 +268,7 @@ export default function Home() {
     if (res.ok) {
       const data = await res.json();
       setUserPfps(prev => ({ ...prev, [username]: data.pfp }));
+      localStorage.setItem(`pfp_${username}`, data.pfp);
       alert('✅ Profile picture updated!');
     }
   };
@@ -270,6 +291,9 @@ export default function Home() {
   };
 
   const handleSignOut = () => {
+    if (username) {
+      localStorage.removeItem(`pfp_${username}`);
+    }
     localStorage.removeItem("chatUsername");
     setUsername(null);
     setShowProfile(false);
