@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2 } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
@@ -70,6 +70,8 @@ export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
   const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>('warning');
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showGames, setShowGames] = useState(false);
+  const [activeGame, setActiveGame] = useState<'reaction' | 'draw' | 'duel' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
@@ -545,6 +547,46 @@ export default function Home() {
         </div>
       )}
 
+      {showGames && (
+        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowGames(false)}>
+          <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl text-[#00ff00] text-shadow-neon">🎮 ARCADE GAMES</h2>
+              <button onClick={() => setShowGames(false)} className="text-[#ff6f61] text-2xl">✕</button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Reaction Game */}
+              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { setActiveGame('reaction'); setShowGames(false); }}>
+                <div className="text-6xl text-center mb-2">🎯</div>
+                <h3 className="text-xl text-[#00ff00] text-center mb-2">REACTION TEST</h3>
+                <p className="text-[#00ff00] text-sm opacity-70 text-center">
+                  Admin triggers event. Fastest clicker wins!
+                </p>
+              </div>
+
+              {/* Drawing Game */}
+              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { setActiveGame('draw'); setShowGames(false); }}>
+                <div className="text-6xl text-center mb-2">🎨</div>
+                <h3 className="text-xl text-[#00ff00] text-center mb-2">DRAW & GUESS</h3>
+                <p className="text-[#00ff00] text-sm opacity-70 text-center">
+                  Draw a word. Others guess in chat!
+                </p>
+              </div>
+
+              {/* Quick Draw Duel */}
+              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { setActiveGame('duel'); setShowGames(false); }}>
+                <div className="text-6xl text-center mb-2">🔫</div>
+                <h3 className="text-xl text-[#00ff00] text-center mb-2">QUICK DRAW</h3>
+                <p className="text-[#00ff00] text-sm opacity-70 text-center">
+                  1v1 reaction duel. Fastest draw wins!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-6xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-4 md:p-8 z-20">
         
         {/* User List Sidebar */}
@@ -598,6 +640,15 @@ export default function Home() {
               >
                 <Download className="w-6 h-6" />
               </button>
+              {isAdmin && (
+                <button 
+                  onClick={() => setShowGames(true)}
+                  className="text-[#00ff00] hover:text-[#ff6f61]"
+                  title="Games (Admin)"
+                >
+                  <Gamepad2 className="w-6 h-6" />
+                </button>
+              )}
               <button 
                 onClick={() => setShowProfile(true)}
                 className="text-[#00ff00] hover:text-[#ff6f61]"
