@@ -111,6 +111,10 @@ export default function Home() {
   useEffect(() => {
     if (wsGameData) {
       setGameData(wsGameData);
+      // Auto-open game for all users when admin starts it
+      if (wsGameData.active && wsGameData.type) {
+        setActiveGame(wsGameData.type);
+      }
     }
   }, [wsGameData]);
 
@@ -576,7 +580,11 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Reaction Game */}
-              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { setActiveGame('reaction'); setShowGames(false); }}>
+              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { 
+                setActiveGame('reaction'); 
+                setShowGames(false); 
+                broadcastGame({ type: 'reaction', active: true });
+              }}>
                 <div className="text-6xl text-center mb-2">🎯</div>
                 <h3 className="text-xl text-[#00ff00] text-center mb-2">REACTION TEST</h3>
                 <p className="text-[#00ff00] text-sm opacity-70 text-center">
@@ -585,7 +593,11 @@ export default function Home() {
               </div>
 
               {/* Drawing Game */}
-              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { setActiveGame('draw'); setShowGames(false); }}>
+              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { 
+                setActiveGame('draw'); 
+                setShowGames(false); 
+                broadcastGame({ type: 'draw', active: true, drawer: username });
+              }}>
                 <div className="text-6xl text-center mb-2">🎨</div>
                 <h3 className="text-xl text-[#00ff00] text-center mb-2">DRAW & GUESS</h3>
                 <p className="text-[#00ff00] text-sm opacity-70 text-center">
@@ -594,7 +606,11 @@ export default function Home() {
               </div>
 
               {/* Quick Draw Duel */}
-              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { setActiveGame('duel'); setShowGames(false); }}>
+              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { 
+                setActiveGame('duel'); 
+                setShowGames(false); 
+                broadcastGame({ type: 'duel', active: true });
+              }}>
                 <div className="text-6xl text-center mb-2">🔫</div>
                 <h3 className="text-xl text-[#00ff00] text-center mb-2">QUICK DRAW</h3>
                 <p className="text-[#00ff00] text-sm opacity-70 text-center">
