@@ -750,7 +750,7 @@ export default function Home() {
               className="w-12 md:w-16 flex items-center justify-center text-[#ff6f61]"
               title="Send GIF"
             >
-              <Smile className="w-6 h-6" />
+              <span className="text-2xl">🎬</span>
             </RetroButton>
 
             <input 
@@ -768,7 +768,7 @@ export default function Home() {
               className={`w-12 md:w-16 flex items-center justify-center ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#ff6f61]'}`}
               title={isRecording ? "Stop Recording" : "Record Voice"}
             >
-              {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+              <span className="text-2xl">{isRecording ? '⏹' : '🎤'}</span>
             </RetroButton>
 
             <RetroButton 
@@ -779,7 +779,7 @@ export default function Home() {
               className="w-12 md:w-16 flex items-center justify-center text-[#ff6f61]"
               title="Upload Meme"
             >
-              <ImageIcon className="w-6 h-6" />
+              <span className="text-2xl">🖼️</span>
             </RetroButton>
           </form>
           
