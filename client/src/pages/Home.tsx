@@ -67,11 +67,16 @@ export default function Home() {
   const [userPfps, setUserPfps] = useState<Record<string, string>>({});
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
+  const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>(
+    localStorage.getItem('skipIntro') ? 'done' : 'warning'
+  );
+  const [showWelcome, setShowWelcome] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const warningVideoRef = useRef<HTMLVideoElement>(null);
   
   const { data: messages = [], isLoading } = useMessages();
   const sendMessage = useSendMessage();
@@ -271,6 +276,16 @@ export default function Home() {
     setShowProfile(false);
   };
 
+  const handleWarningEnd = () => {
+    setIntroStage('zoom');
+    setTimeout(() => {
+      setIntroStage('done');
+      setShowWelcome(true);
+      localStorage.setItem('skipIntro', 'true');
+      setTimeout(() => setShowWelcome(false), 5000);
+    }, 3000);
+  };
+
   if (!username) {
     return (
       <div 
@@ -279,7 +294,35 @@ export default function Home() {
       >
         <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
         
-        <div className="z-20 bg-black/90 border-4 border-[#00ff00] box-shadow-retro p-8 max-w-md w-full mx-4">
+        {introStage === 'warning' && (
+          <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
+            <video
+              ref={warningVideoRef}
+              src="/WARNING.mp4"
+              className="w-full h-full object-cover"
+              autoPlay
+              playsInline
+              onEnded={handleWarningEnd}
+              onClick={handleWarningEnd}
+            />
+          </div>
+        )}
+
+        {introStage === 'zoom' && (
+          <div className="fixed inset-0 z-[300] bg-black overflow-hidden">
+            <div 
+              className="w-full h-full animate-zoom-out"
+              style={{ 
+                backgroundImage: `url(${bgGif})`, 
+                backgroundSize: "cover", 
+                backgroundPosition: "center",
+                animation: "zoomOut 3s ease-out forwards"
+              }}
+            />
+          </div>
+        )}
+        
+        <div className={`z-20 bg-black/90 border-4 border-[#00ff00] box-shadow-retro p-8 max-w-md w-full mx-4 ${introStage !== 'done' ? 'opacity-0' : 'animate-fade-in'}`}>
           <div className="text-center mb-6">
             <img 
               src={flames} 
@@ -322,10 +365,48 @@ export default function Home() {
 
   return (
     <div 
-      className="min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black"
+      className={`min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black ${introStage !== 'done' ? 'opacity-0' : 'animate-fade-in'}`}
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+
+      {introStage === 'warning' && (
+        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
+          <video
+            ref={warningVideoRef}
+            src="/WARNING.mp4"
+            className="w-full h-full object-cover"
+            autoPlay
+            playsInline
+            onEnded={handleWarningEnd}
+            onClick={handleWarningEnd}
+          />
+        </div>
+      )}
+
+      {introStage === 'zoom' && (
+        <div className="fixed inset-0 z-[300] bg-black overflow-hidden">
+          <div 
+            className="w-full h-full"
+            style={{ 
+              backgroundImage: `url(${bgGif})`, 
+              backgroundSize: "cover", 
+              backgroundPosition: "center",
+              animation: "zoomOut 3s ease-out forwards"
+            }}
+          />
+        </div>
+      )}
+
+      {introStage === 'done' && showWelcome && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] animate-fade-in-down">
+          <div className="bg-black/90 border-4 border-[#00ff00] box-shadow-retro px-6 py-3">
+            <p className="text-[#00ff00] text-2xl text-shadow-neon text-center">
+              ✨ WELCOME TO GRABZHANGOUT009, {username?.toUpperCase()}! ✨
+            </p>
+          </div>
+        </div>
+      )}
 
       {showConfetti && (
         <div className="fixed inset-0 z-[100] pointer-events-none">
