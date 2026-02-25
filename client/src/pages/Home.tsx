@@ -67,7 +67,7 @@ export default function Home() {
   const [userPfps, setUserPfps] = useState<Record<string, string>>({});
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
-  const [showIntro, setShowIntro] = useState(!localStorage.getItem('seenIntro'));
+  const [showIntro, setShowIntro] = useState(true);
   const [introStage, setIntroStage] = useState<'start' | 'warning' | 'zoom' | 'done'>('start');
   const [showWelcome, setShowWelcome] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -323,10 +323,17 @@ export default function Home() {
       setIntroStage('done');
       setShowIntro(false);
       setShowWelcome(true);
-      localStorage.setItem('seenIntro', 'true');
       setTimeout(() => setShowWelcome(false), 5000);
     }, 3000);
   };
+
+  useEffect(() => {
+    // Reset intro when username changes (new login)
+    if (username) {
+      setShowIntro(true);
+      setIntroStage('start');
+    }
+  }, [username]);
 
   useEffect(() => {
     if (showIntro && introStage === 'warning' && warningVideoRef.current && username) {
