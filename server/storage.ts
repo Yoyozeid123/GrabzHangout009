@@ -1,11 +1,13 @@
 import { db } from "./db";
-import { messages, type InsertMessage, type Message } from "@shared/schema";
+import { messages, users, type InsertMessage, type Message, type User } from "@shared/schema";
 import { desc, eq } from "drizzle-orm";
 
 export interface IStorage {
   getMessages(): Promise<Message[]>;
   createMessage(msg: InsertMessage): Promise<Message>;
   deleteMessage(id: number): Promise<void>;
+  getUser(username: string): Promise<User | undefined>;
+  upsertUser(username: string, pfp?: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -22,6 +24,19 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMessage(id: number): Promise<void> {
     await db.delete(messages).where(eq(messages.id, id));
+  }
+
+  async getUser(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async upsertUser(username: string, pfp?: string): Promise<User> {
+    const [user] = await db.insert(users)
+      .values({ username, pfp })
+      .onConflictDoUpdate({ target: users.username, set: { pfp } })
+      .returning();
+    return user;
   }
 }
 

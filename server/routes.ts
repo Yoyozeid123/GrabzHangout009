@@ -14,7 +14,12 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-const upload = multer({ dest: UPLOAD_DIR });
+const storage_multer = multer({ 
+  dest: UPLOAD_DIR,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+const upload = storage_multer.single("file");
+const uploadVoice = storage_multer.single("voice");
 
 const onlineUsers = new Map<WebSocket, string>();
 const typingUsers = new Set<string>();
@@ -123,12 +128,40 @@ export async function registerRoutes(
     }
   });
 
-  app.post(api.uploads.create.path, upload.single("file"), async (req, res) => {
+  app.post(api.uploads.create.path, storage_multer.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
     
     res.status(201).json({ filename: req.file.filename });
+  });
+
+  app.post("/api/upload-voice", storage_multer.single("voice"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "No voice file uploaded" });
+    }
+    
+    res.status(201).json({ filename: req.file.filename });
+  });
+
+  app.post("/api/upload-pfp", storage_multer.single("file"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ message: "Username required" });
+    }
+    
+    const pfpUrl = `/uploads/${req.file.filename}`;
+    await storage.upsertUser(username, pfpUrl);
+    
+    res.status(201).json({ pfp: pfpUrl });
+  });
+
+  app.get("/api/users/:username", async (req, res) => {
+    const user = await storage.getUser(req.params.username);
+    res.json(user || { username: req.params.username, pfp: null });
   });
 
   app.get("/api/giphy/search", async (req, res) => {

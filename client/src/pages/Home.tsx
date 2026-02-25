@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2 } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
@@ -63,8 +63,12 @@ export default function Home() {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showJumpscare, setShowJumpscare] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [userPfps, setUserPfps] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   
   const { data: messages = [], isLoading } = useMessages();
   const sendMessage = useSendMessage();
@@ -89,6 +93,22 @@ export default function Home() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [messages]);
+
+  useEffect(() => {
+    const fetchPfps = async () => {
+      const uniqueUsers = [...new Set(messages.map(m => m.username))];
+      for (const user of uniqueUsers) {
+        if (!userPfps[user]) {
+          const res = await fetch(`/api/users/${user}`);
+          const data = await res.json();
+          if (data.pfp) {
+            setUserPfps(prev => ({ ...prev, [user]: data.pfp }));
+          }
+        }
+      }
+    };
+    fetchPfps();
   }, [messages]);
 
   const handleSetUsername = (e: React.FormEvent) => {
@@ -155,6 +175,54 @@ export default function Home() {
         });
       }
     });
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('voice', audioBlob, 'voice.webm');
+
+        const res = await fetch('/api/upload-voice', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          sendMessage.mutate({
+            type: 'voice',
+            content: `/uploads/${data.filename}`,
+            username: username!
+          });
+        }
+
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone error:', err);
+      alert('Could not access microphone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
   };
 
   if (!username) {
@@ -313,42 +381,66 @@ export default function Home() {
                 </div>
               ) : (
                 messages.map((msg, idx) => (
-                  <div key={msg.id || idx} className="text-xl break-words group relative">
-                    <span className="text-[#ff6f61] mr-2">
-                      [{msg.createdAt ? format(new Date(msg.createdAt), "HH:mm:ss") : "00:00:00"}]
-                    </span>
-                    <span className="text-[#00aa00] mr-2 font-bold">&lt;{msg.username || "Guest"}&gt;</span>
-                    
-                    {msg.type === "image" || msg.type === "gif" ? (
-                      <div className="mt-2 mb-2 inline-block relative">
-                        <img 
-                          src={msg.content} 
-                          alt={msg.type === "gif" ? "GIF" : "User uploaded meme"} 
-                          className="max-w-xs md:max-w-md border-2 border-[#00ff00] p-1 bg-black box-shadow-retro"
-                        />
-                        {isAdmin && (
-                          <button
-                            onClick={() => deleteMessage.mutate(msg.id)}
-                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Delete (Admin Only)"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                  <div key={msg.id || idx} className="text-xl break-words group relative flex items-start gap-2">
+                    {userPfps[msg.username] && (
+                      <img 
+                        src={userPfps[msg.username]} 
+                        alt={msg.username}
+                        className="w-8 h-8 rounded-full border-2 border-[#00ff00] flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div>
+                        <span className="text-[#ff6f61] mr-2">
+                          [{msg.createdAt ? format(new Date(msg.createdAt), "HH:mm:ss") : "00:00:00"}]
+                        </span>
+                        <span className="text-[#00aa00] mr-2 font-bold">&lt;{msg.username || "Guest"}&gt;</span>
                       </div>
-                    ) : (
-                      <span className="text-[#00ff00]">{msg.content}</span>
-                    )}
                     
-                    {msg.type === "text" && isAdmin && (
-                      <button
-                        onClick={() => deleteMessage.mutate(msg.id)}
-                        className="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Delete (Admin Only)"
-                      >
-                        <Trash2 className="w-4 h-4 inline" />
-                      </button>
-                    )}
+                      {msg.type === "image" || msg.type === "gif" ? (
+                        <div className="mt-2 mb-2 inline-block relative">
+                          <img 
+                            src={msg.content} 
+                            alt={msg.type === "gif" ? "GIF" : "User uploaded meme"} 
+                            className="max-w-xs md:max-w-md border-2 border-[#00ff00] p-1 bg-black box-shadow-retro"
+                          />
+                          {isAdmin && (
+                            <button
+                              onClick={() => deleteMessage.mutate(msg.id)}
+                              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Delete (Admin Only)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ) : msg.type === "voice" ? (
+                        <div className="mt-2 flex items-center gap-2">
+                          <audio src={msg.content} controls className="max-w-xs" />
+                          {isAdmin && (
+                            <button
+                              onClick={() => deleteMessage.mutate(msg.id)}
+                              className="text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Delete (Admin Only)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[#00ff00]">{msg.content}</span>
+                      )}
+                    
+                      {msg.type === "text" && isAdmin && (
+                        <button
+                          onClick={() => deleteMessage.mutate(msg.id)}
+                          className="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete (Admin Only)"
+                        >
+                          <Trash2 className="w-4 h-4 inline" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -422,6 +514,16 @@ export default function Home() {
               onChange={handleFileUpload} 
               disabled={uploadImage.isPending}
             />
+            <RetroButton 
+              type="button" 
+              variant="secondary"
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`w-12 md:w-16 flex items-center justify-center ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#ff6f61]'}`}
+              title={isRecording ? "Stop Recording" : "Record Voice"}
+            >
+              {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            </RetroButton>
+
             <RetroButton 
               type="button" 
               variant="secondary"
