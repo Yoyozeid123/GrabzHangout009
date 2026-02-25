@@ -23,8 +23,10 @@ export default function Home() {
   const [showUserList, setShowUserList] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showJumpscare, setShowJumpscare] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const jumpscareVideoRef = useRef<HTMLVideoElement>(null);
   
   const { data: messages = [], isLoading } = useMessages();
   const sendMessage = useSendMessage();
@@ -77,6 +79,15 @@ export default function Home() {
   const triggerConfetti = () => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
+  };
+
+  const triggerJumpscare = () => {
+    setShowJumpscare(true);
+    if (jumpscareVideoRef.current) {
+      jumpscareVideoRef.current.currentTime = 0;
+      jumpscareVideoRef.current.play();
+    }
+    setTimeout(() => setShowJumpscare(false), 5000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,6 +183,18 @@ export default function Home() {
               </span>
             </div>
           ))}
+        </div>
+      )}
+
+      {showJumpscare && (
+        <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
+          <video
+            ref={jumpscareVideoRef}
+            src="/360p-watermark.mp4"
+            className="w-full h-full object-cover"
+            autoPlay
+            muted={false}
+          />
         </div>
       )}
 
@@ -321,14 +344,24 @@ export default function Home() {
             </RetroButton>
 
             {isAdmin && (
-              <RetroButton 
-                type="button" 
-                onClick={triggerConfetti}
-                className="w-12 md:w-16 flex items-center justify-center text-yellow-400"
-                title="Confetti (Admin Only)"
-              >
-                🎉
-              </RetroButton>
+              <>
+                <RetroButton 
+                  type="button" 
+                  onClick={triggerConfetti}
+                  className="w-12 md:w-16 flex items-center justify-center text-yellow-400"
+                  title="Confetti (Admin Only)"
+                >
+                  🎉
+                </RetroButton>
+                <RetroButton 
+                  type="button" 
+                  onClick={triggerJumpscare}
+                  className="w-12 md:w-16 flex items-center justify-center text-red-500"
+                  title="Jumpscare (Admin Only)"
+                >
+                  👻
+                </RetroButton>
+              </>
             )}
 
             <RetroButton 
