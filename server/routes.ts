@@ -90,11 +90,18 @@ export async function registerRoutes(
       onlineUsers.delete(ws);
       if (userData) {
         typingUsers.delete(userData.username);
+        const usersInRoom = getUsersInRoom(userData.room);
         broadcastToRoom(userData.room, { 
           type: "userList", 
-          users: getUsersInRoom(userData.room),
-          count: getUsersInRoom(userData.room).length
+          users: usersInRoom,
+          count: usersInRoom.length
         });
+        
+        // Auto-delete empty rooms (except main)
+        if (usersInRoom.length === 0 && userData.room !== "main") {
+          rooms.delete(userData.room);
+          console.log(`Auto-deleted empty room: ${userData.room}`);
+        }
       }
     });
   });
