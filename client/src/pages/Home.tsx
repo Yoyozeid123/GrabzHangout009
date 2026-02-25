@@ -46,11 +46,11 @@ export default function Home() {
   useEffect(() => {
     if (jumpscareTrigger > 0) {
       setShowJumpscare(true);
-      if (jumpscareVideoRef.current) {
-        jumpscareVideoRef.current.currentTime = 0;
-        jumpscareVideoRef.current.play().catch(err => console.error("Video play error:", err));
-      }
-      setTimeout(() => setShowJumpscare(false), 5000);
+      const timer = setTimeout(() => {
+        setShowJumpscare(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
     }
   }, [jumpscareTrigger]);
 
@@ -217,7 +217,14 @@ export default function Home() {
             className="w-full h-full object-cover"
             autoPlay
             playsInline
+            onLoadedData={() => {
+              if (jumpscareVideoRef.current) {
+                jumpscareVideoRef.current.currentTime = 0;
+                jumpscareVideoRef.current.play().catch(err => console.error("Video play error:", err));
+              }
+            }}
             onEnded={() => setShowJumpscare(false)}
+            onError={() => setShowJumpscare(false)}
           />
         </div>
       )}
@@ -243,12 +250,12 @@ export default function Home() {
       <div className="w-full max-w-6xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-4 md:p-8 z-20">
         
         {/* User List Sidebar */}
-        <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 border-[#00ff00] box-shadow-retro flex-shrink-0`}>
+        <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 border-[#00ff00] box-shadow-retro flex-shrink-0 md:max-h-[400px]`}>
           <div className="bg-[#00ff00] text-black px-3 py-1 flex items-center gap-2 font-bold">
             <Users className="w-5 h-5" />
             <span>ONLINE ({onlineCount})</span>
           </div>
-          <div className="p-3 space-y-2 max-h-[300px] md:max-h-full overflow-y-auto retro-scrollbar">
+          <div className="p-3 space-y-2 max-h-[200px] md:max-h-[350px] overflow-y-auto retro-scrollbar">
             {onlineUsers.map((user, idx) => (
               <div key={idx} className="text-[#00ff00] flex items-center gap-2">
                 <span className="text-[#ff6f61]">●</span>
