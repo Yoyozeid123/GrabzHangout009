@@ -368,6 +368,14 @@ export default function Home() {
     }
   }, [username]);
 
+  useEffect(() => {
+    if (introStage === 'warning' && warningVideoRef.current) {
+      warningVideoRef.current.play().catch(err => {
+        console.error("Video autoplay failed:", err);
+      });
+    }
+  }, [introStage]);
+
   if (!username) {
     return (
       <div 
@@ -438,8 +446,20 @@ export default function Home() {
             className="w-full h-full object-cover cursor-pointer"
             playsInline
             autoPlay
+            muted
             onEnded={handleWarningEnd}
-            onClick={handleWarningEnd}
+            onClick={(e) => {
+              const video = e.currentTarget;
+              if (video.paused) {
+                video.play();
+              } else {
+                handleWarningEnd();
+              }
+            }}
+            onError={() => {
+              console.error("Video failed to load");
+              handleWarningEnd();
+            }}
           />
           <div className="absolute bottom-4 right-4 text-[#00ff00] text-xl bg-black/80 px-4 py-2 border-2 border-[#00ff00] animate-pulse pointer-events-none">
             CLICK TO SKIP →
