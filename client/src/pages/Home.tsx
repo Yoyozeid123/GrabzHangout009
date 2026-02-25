@@ -76,9 +76,11 @@ export default function Home() {
   const [showGames, setShowGames] = useState(false);
   const [activeGame, setActiveGame] = useState<'reaction' | 'draw' | 'duel' | null>(null);
   const [gameData, setGameData] = useState<any>(null);
-  const [roomName, setRoomName] = useState<string>(localStorage.getItem("chatRoom") || "main");
+  const [roomName, setRoomName] = useState<string>("");
   const [roomInput, setRoomInput] = useState("");
-  const [showRoomSelect, setShowRoomSelect] = useState(false);
+  const [roomPassword, setRoomPassword] = useState("");
+  const [showRoomSelect, setShowRoomSelect] = useState(true);
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +190,6 @@ export default function Home() {
     if (!usernameInput.trim()) return;
     
     const name = usernameInput.trim();
-    const room = roomInput.trim() || "main";
     
     if (name.toLowerCase() === "yofez009") {
       if (passwordInput !== "Yofez!123") {
@@ -198,9 +199,28 @@ export default function Home() {
     }
     
     setUsername(name);
-    setRoomName(room);
     localStorage.setItem("chatUsername", name);
-    localStorage.setItem("chatRoom", room);
+  };
+
+  const handleJoinRoom = (room: string, password?: string) => {
+    // Check password for main room
+    if (room === "main" && password !== "Grabzfeetfeet") {
+      alert("❌ Wrong password for main room!");
+      return;
+    }
+    
+    setRoomName(room);
+    setShowRoomSelect(false);
+  };
+
+  const handleCreateRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roomInput.trim()) return;
+    
+    const room = roomInput.trim();
+    setRoomName(room);
+    setShowRoomSelect(false);
+    setShowCreateRoom(false);
   };
 
   const handleSendText = (e: React.FormEvent) => {
@@ -376,6 +396,93 @@ export default function Home() {
     }
   }, [introStage]);
 
+  if (showRoomSelect) {
+    return (
+      <div 
+        className="min-h-screen w-full relative overflow-hidden flex items-center justify-center"
+        style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
+      >
+        <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+        
+        <div className="z-20 bg-black/90 border-4 border-[#00ff00] box-shadow-retro p-8 max-w-md w-full mx-4">
+          <div className="text-center mb-6">
+            <img 
+              src={flames} 
+              alt="Grabzhangout009" 
+              className="h-20 object-contain drop-shadow-[0_0_10px_#ff6f61] mx-auto mb-4" 
+            />
+            <h1 className="text-2xl text-[#00ff00] text-shadow-neon mb-2">SELECT CHATROOM</h1>
+            <p className="text-[#00ff00] opacity-70">Join or create a room</p>
+          </div>
+
+          {!showCreateRoom ? (
+            <div className="space-y-4">
+              <div>
+                <RetroInput
+                  value={roomPassword}
+                  type="password"
+                  onChange={(e) => setRoomPassword(e.target.value)}
+                  placeholder="> MAIN ROOM PASSWORD..."
+                  maxLength={50}
+                />
+                <RetroButton 
+                  onClick={() => handleJoinRoom("main", roomPassword)}
+                  className="w-full mt-2"
+                >
+                  JOIN MAIN ROOM
+                </RetroButton>
+              </div>
+
+              <div className="text-center text-[#00ff00] opacity-70">- OR -</div>
+
+              <RetroButton 
+                onClick={() => setShowCreateRoom(true)}
+                variant="secondary"
+                className="w-full"
+              >
+                CREATE NEW ROOM
+              </RetroButton>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateRoom} className="space-y-4">
+              <RetroInput
+                value={roomInput}
+                onChange={(e) => setRoomInput(e.target.value)}
+                placeholder="> ROOM NAME..."
+                maxLength={30}
+                autoFocus
+              />
+              <RetroInput
+                value={roomPassword}
+                type="password"
+                onChange={(e) => setRoomPassword(e.target.value)}
+                placeholder="> PASSWORD (optional)..."
+                maxLength={50}
+              />
+              <div className="flex gap-2">
+                <RetroButton 
+                  type="submit" 
+                  disabled={!roomInput.trim()}
+                  className="flex-1"
+                >
+                  CREATE ROOM
+                </RetroButton>
+                <RetroButton 
+                  type="button"
+                  onClick={() => setShowCreateRoom(false)}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  BACK
+                </RetroButton>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!username) {
     return (
       <div 
@@ -402,12 +509,6 @@ export default function Home() {
               placeholder="> TYPE USERNAME..."
               maxLength={20}
               autoFocus
-            />
-            <RetroInput
-              value={roomInput}
-              onChange={(e) => setRoomInput(e.target.value)}
-              placeholder="> ROOM NAME (leave empty for main)..."
-              maxLength={30}
             />
             {usernameInput.toLowerCase() === "yofez009" && (
               <RetroInput
