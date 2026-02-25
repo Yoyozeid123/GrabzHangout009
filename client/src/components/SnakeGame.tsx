@@ -59,8 +59,9 @@ export function SnakeGame({ username, isAdmin, onClose, broadcastGame, gameData 
 
       const head = myPlayer.snake[0];
       let newHead = { ...head };
+      const currentDir = directionRef.current;
 
-      switch (directionRef.current) {
+      switch (currentDir) {
         case "UP": newHead.y -= 1; break;
         case "DOWN": newHead.y += 1; break;
         case "LEFT": newHead.x -= 1; break;
@@ -69,20 +70,26 @@ export function SnakeGame({ username, isAdmin, onClose, broadcastGame, gameData 
 
       // Check wall collision
       if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
+        const updatedPlayers = { ...players };
+        updatedPlayers[username] = { ...myPlayer, alive: false };
         broadcastGame({
           type: 'snake',
-          action: 'die',
-          username
+          players: updatedPlayers,
+          food,
+          started: true
         });
         return;
       }
 
       // Check self collision
       if (myPlayer.snake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
+        const updatedPlayers = { ...players };
+        updatedPlayers[username] = { ...myPlayer, alive: false };
         broadcastGame({
           type: 'snake',
-          action: 'die',
-          username
+          players: updatedPlayers,
+          food,
+          started: true
         });
         return;
       }
@@ -95,24 +102,33 @@ export function SnakeGame({ username, isAdmin, onClose, broadcastGame, gameData 
           x: Math.floor(Math.random() * GRID_SIZE),
           y: Math.floor(Math.random() * GRID_SIZE)
         };
+        const updatedPlayers = { ...players };
+        updatedPlayers[username] = {
+          ...myPlayer,
+          snake: newSnake,
+          direction: currentDir,
+          score: myPlayer.score + 1
+        };
         broadcastGame({
           type: 'snake',
-          action: 'move',
-          username,
-          snake: newSnake,
-          direction: directionRef.current,
-          score: myPlayer.score + 1,
-          food: newFood
+          players: updatedPlayers,
+          food: newFood,
+          started: true
         });
       } else {
         newSnake.pop();
+        const updatedPlayers = { ...players };
+        updatedPlayers[username] = {
+          ...myPlayer,
+          snake: newSnake,
+          direction: currentDir,
+          score: myPlayer.score
+        };
         broadcastGame({
           type: 'snake',
-          action: 'move',
-          username,
-          snake: newSnake,
-          direction: directionRef.current,
-          score: myPlayer.score
+          players: updatedPlayers,
+          food,
+          started: true
         });
       }
     }, 150);
