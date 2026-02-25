@@ -51,7 +51,7 @@ export function useWebSocket(username: string | null, room: string = "main") {
     return () => {
       ws.close();
     };
-  }, [username, queryClient]);
+  }, [username, room, queryClient]);
 
   const sendTyping = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN && username) {

@@ -79,6 +79,7 @@ export default function Home() {
   const [roomName, setRoomName] = useState<string>("");
   const [roomInput, setRoomInput] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
+  const [roomPasswords, setRoomPasswords] = useState<Record<string, string>>({});
   const [showRoomSelect, setShowRoomSelect] = useState(true);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
@@ -455,12 +456,13 @@ export default function Home() {
                       <RetroInput
                         type="password"
                         placeholder="> PASSWORD..."
-                        onChange={(e) => setRoomPassword(e.target.value)}
+                        value={roomPasswords[room.name] || ""}
+                        onChange={(e) => setRoomPasswords(prev => ({ ...prev, [room.name]: e.target.value }))}
                         className="mb-2"
                       />
                     )}
                     <RetroButton 
-                      onClick={() => handleJoinRoom(room.name, roomPassword)}
+                      onClick={() => handleJoinRoom(room.name, roomPasswords[room.name])}
                       className="w-full"
                     >
                       JOIN {room.hasPassword ? '🔒' : ''}
