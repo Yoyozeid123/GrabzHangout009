@@ -352,17 +352,6 @@ export default function Home() {
         <JumpscareVideo onClose={() => setShowJumpscare(false)} />
       )}
 
-      <img 
-        src={leftFrog} 
-        className="absolute top-4 left-4 w-20 md:w-32 z-10" 
-        alt="Dancing Frog Left" 
-      />
-      <img 
-        src={rightFrog} 
-        className="absolute top-4 right-4 w-20 md:w-32 z-10" 
-        alt="Dancing Frog Right" 
-      />
-
       {showGifPicker && (
         <GifPicker
           onSelect={handleGifSelect}
@@ -454,12 +443,24 @@ export default function Home() {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
           <header className="flex flex-col items-center justify-center mb-4 md:mb-8">
-            <img 
-              src={flames} 
-              alt="Grabzhangout009" 
-              className="h-16 md:h-28 object-contain drop-shadow-[0_0_10px_#ff6f61]" 
-            />
-            <div className="mt-2 text-xl md:text-2xl text-shadow-neon bg-black/60 px-4 py-1 border border-[#00ff00] flex items-center gap-3">
+            <div className="flex items-center gap-4">
+              <img 
+                src={leftFrog} 
+                className="w-16 md:w-24" 
+                alt="Dancing Frog" 
+              />
+              <img 
+                src={flames} 
+                alt="Grabzhangout009" 
+                className="h-16 md:h-28 object-contain drop-shadow-[0_0_10px_#ff6f61]" 
+              />
+              <img 
+                src={rightFrog} 
+                className="w-16 md:w-24" 
+                alt="Dancing Frog" 
+              />
+            </div>
+            <div className="mt-2 text-xl md:text-2xl text-shadow-neon bg-black/60 px-4 py-1 border border-[#00ff00] flex items-center gap-3 self-start">
               <span className="blinking-cursor">EST. 1999 :: {onlineCount} USERS ONLINE</span>
               <button 
                 onClick={() => setShowUserList(!showUserList)}
