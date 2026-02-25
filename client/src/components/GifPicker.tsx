@@ -24,6 +24,7 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
       setGifs(data.data || []);
     } catch (error) {
       console.error("Failed to search GIFs:", error);
+      setGifs([]);
     } finally {
       setLoading(false);
     }

@@ -172,26 +172,28 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Query required" });
     }
 
-    const apiKey = process.env.TENOR_API_KEY || "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ"; // Default Tenor key
+    const apiKey = process.env.TENOR_API_KEY || "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ";
     
     try {
       const response = await fetch(
-        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${apiKey}&limit=20`
+        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${apiKey}&limit=20&media_filter=gif`
       );
       const data = await response.json();
+      
       // Convert Tenor format to match Giphy format
       const converted = {
-        data: data.results?.map((gif: any) => ({
+        data: (data.results || []).map((gif: any) => ({
           images: {
             fixed_height: {
-              url: gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url
+              url: gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url || ""
             }
           }
-        })) || []
+        }))
       };
       res.json(converted);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch GIFs" });
+      console.error("Tenor API error:", error);
+      res.status(500).json({ message: "Failed to fetch GIFs", data: [] });
     }
   });
 
