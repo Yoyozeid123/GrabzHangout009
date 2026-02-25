@@ -71,6 +71,7 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [showIntro, setShowIntro] = useState(true);
+  const [introStage, setIntroStage] = useState<'warning' | 'quote' | 'done'>('warning');
   const [introQuote, setIntroQuote] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
   const [showGames, setShowGames] = useState(false);
@@ -84,6 +85,7 @@ export default function Home() {
   const pfpInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const warningVideoRef = useRef<HTMLVideoElement>(null);
 
   // Clear old pfps on version change
   useEffect(() => {
@@ -403,16 +405,23 @@ export default function Home() {
     "EMOTIONAL_DAMAGE!"
   ];
 
+  const handleWarningEnd = () => {
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    setIntroQuote(randomQuote);
+    setIntroStage('quote');
+    
+    setTimeout(() => {
+      setIntroStage('done');
+      setShowIntro(false);
+      setShowWelcome(true);
+      setTimeout(() => setShowWelcome(false), 3000);
+    }, 3000);
+  };
+
   useEffect(() => {
-    if (username && showIntro) {
-      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      setIntroQuote(randomQuote);
-      
-      setTimeout(() => {
-        setShowIntro(false);
-        setShowWelcome(true);
-        setTimeout(() => setShowWelcome(false), 3000);
-      }, 3000);
+    if (username) {
+      setShowIntro(true);
+      setIntroStage('warning');
     }
   }, [username]);
 
@@ -478,7 +487,24 @@ export default function Home() {
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
-      {showIntro && (
+      {showIntro && introStage === 'warning' && (
+        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
+          <video
+            ref={warningVideoRef}
+            src="/WARNING.mp4"
+            className="w-full h-full object-cover cursor-pointer"
+            playsInline
+            autoPlay
+            onEnded={handleWarningEnd}
+            onClick={handleWarningEnd}
+          />
+          <div className="absolute bottom-4 right-4 text-[#00ff00] text-xl bg-black/80 px-4 py-2 border-2 border-[#00ff00] animate-pulse pointer-events-none">
+            CLICK TO SKIP →
+          </div>
+        </div>
+      )}
+
+      {showIntro && introStage === 'quote' && (
         <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center animate-fade-in">
           <h1 className="text-6xl md:text-8xl text-[#00ff00] text-shadow-neon font-bold animate-pulse">
             {introQuote}
