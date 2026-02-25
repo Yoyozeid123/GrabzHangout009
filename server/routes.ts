@@ -8,8 +8,6 @@ import path from "path";
 import fs from "fs";
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
-import { RekognitionClient, DetectModerationLabelsCommand } from "@aws-sdk/client-rekognition";
-import axios from "axios";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -21,31 +19,12 @@ const upload = multer({ dest: UPLOAD_DIR });
 const onlineUsers = new Map<WebSocket, string>();
 const typingUsers = new Set<string>();
 
-const rekognition = new RekognitionClient({ region: process.env.AWS_REGION || "us-east-1" });
+// Simple NSFW keyword filter (no AWS needed)
+const nsfwKeywords = ['nsfw', 'porn', 'xxx', 'sex', 'nude', 'naked'];
 
-async function moderateImage(imageBuffer: Buffer): Promise<boolean> {
-  try {
-    const command = new DetectModerationLabelsCommand({
-      Image: { Bytes: imageBuffer },
-      MinConfidence: 60
-    });
-    const response = await rekognition.send(command);
-    return (response.ModerationLabels?.length || 0) > 0;
-  } catch (error) {
-    console.error("Moderation error:", error);
-    return false;
-  }
-}
-
-async function moderateGif(gifUrl: string): Promise<boolean> {
-  try {
-    const response = await axios.get(gifUrl, { responseType: 'arraybuffer' });
-    const buffer = Buffer.from(response.data);
-    return await moderateImage(buffer);
-  } catch (error) {
-    console.error("GIF moderation error:", error);
-    return false;
-  }
+function containsNsfwKeywords(text: string): boolean {
+  const lower = text.toLowerCase();
+  return nsfwKeywords.some(keyword => lower.includes(keyword));
 }
 
 export async function registerRoutes(
@@ -122,11 +101,8 @@ export async function registerRoutes(
     try {
       const input = api.messages.create.input.parse(req.body);
       
-      if (input.type === "gif") {
-        const isNsfw = await moderateGif(input.content);
-        if (isNsfw) {
-          return res.status(400).json({ message: "Content blocked: NSFW detected" });
-        }
+      if (input.type === "text" && containsNsfwKeywords(input.content)) {
+        return res.status(400).json({ message: "Content blocked: Inappropriate language detected" });
       }
       
       const msg = await storage.createMessage(input);
@@ -146,14 +122,6 @@ export async function registerRoutes(
   app.post(api.uploads.create.path, upload.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
-    }
-    
-    const imageBuffer = fs.readFileSync(req.file.path);
-    const isNsfw = await moderateImage(imageBuffer);
-    
-    if (isNsfw) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ message: "Content blocked: NSFW detected" });
     }
     
     res.status(201).json({ filename: req.file.filename });
