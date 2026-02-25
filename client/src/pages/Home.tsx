@@ -13,6 +13,45 @@ import leftFrog from "@assets/frog-left_1771938204138.gif";
 import rightFrog from "@assets/frog-right_1771938204140.gif";
 import flames from "@assets/Grabzhangout009-flames_1771938204143.gif";
 
+function JumpscareVideo({ onClose }: { onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.play().catch(err => {
+        console.error("Video play error:", err);
+        onClose();
+      });
+    }
+
+    const timer = setTimeout(onClose, 5000);
+    return () => {
+      clearTimeout(timer);
+      if (video) {
+        video.pause();
+        video.src = "";
+      }
+    };
+  }, [onClose]);
+
+  return (
+    <div 
+      className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
+      onClick={onClose}
+    >
+      <video
+        ref={videoRef}
+        src="/360p-watermark.mp4"
+        className="w-full h-full object-cover"
+        playsInline
+        onEnded={onClose}
+        onError={onClose}
+      />
+    </div>
+  );
+}
+
 export default function Home() {
   const [text, setText] = useState("");
   const [username, setUsername] = useState<string | null>(
@@ -26,7 +65,6 @@ export default function Home() {
   const [showJumpscare, setShowJumpscare] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const jumpscareVideoRef = useRef<HTMLVideoElement>(null);
   
   const { data: messages = [], isLoading } = useMessages();
   const sendMessage = useSendMessage();
@@ -46,11 +84,6 @@ export default function Home() {
   useEffect(() => {
     if (jumpscareTrigger > 0) {
       setShowJumpscare(true);
-      const timer = setTimeout(() => {
-        setShowJumpscare(false);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
     }
   }, [jumpscareTrigger]);
 
@@ -103,11 +136,6 @@ export default function Home() {
   const triggerJumpscare = () => {
     broadcastJumpscare();
     setShowJumpscare(true);
-    if (jumpscareVideoRef.current) {
-      jumpscareVideoRef.current.currentTime = 0;
-      jumpscareVideoRef.current.play();
-    }
-    setTimeout(() => setShowJumpscare(false), 5000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,26 +235,7 @@ export default function Home() {
       )}
 
       {showJumpscare && (
-        <div 
-          className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
-          onClick={() => setShowJumpscare(false)}
-        >
-          <video
-            ref={jumpscareVideoRef}
-            src="/360p-watermark.mp4"
-            className="w-full h-full object-cover"
-            autoPlay
-            playsInline
-            onLoadedData={() => {
-              if (jumpscareVideoRef.current) {
-                jumpscareVideoRef.current.currentTime = 0;
-                jumpscareVideoRef.current.play().catch(err => console.error("Video play error:", err));
-              }
-            }}
-            onEnded={() => setShowJumpscare(false)}
-            onError={() => setShowJumpscare(false)}
-          />
-        </div>
+        <JumpscareVideo onClose={() => setShowJumpscare(false)} />
       )}
 
       <img 
