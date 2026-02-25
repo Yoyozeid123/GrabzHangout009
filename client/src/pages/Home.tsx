@@ -71,8 +71,7 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [showIntro, setShowIntro] = useState(true);
-  const [introStage, setIntroStage] = useState<'warning' | 'quote' | 'done'>('warning');
-  const [introQuote, setIntroQuote] = useState("");
+  const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>('warning');
   const [showWelcome, setShowWelcome] = useState(false);
   const [showGames, setShowGames] = useState(false);
   const [activeGame, setActiveGame] = useState<'reaction' | 'draw' | 'duel' | null>(null);
@@ -352,70 +351,14 @@ export default function Home() {
     window.location.href = '/api/messages/export';
   };
 
-  const quotes = [
-    "LOADING_MEMES...",
-    "INITIALIZING_CHAOS_PROTOCOL...",
-    "DOWNLOADING_MORE_RAM...",
-    "HACKING_THE_MAINFRAME...",
-    "DELETING_SYSTEM32...",
-    "INSTALLING_BONZI_BUDDY...",
-    "CONNECTING_TO_AOL...",
-    "YOU_GOT_MAIL!",
-    "BUFFERING_90s_NOSTALGIA...",
-    "RETICULATING_SPLINES...",
-    "WARMING_UP_PARTICLE_ACCELERATOR...",
-    "DIVIDING_BY_ZERO...",
-    "SPINNING_UP_HAMSTER_WHEELS...",
-    "CONSULTING_MAGIC_8_BALL...",
-    "ASKING_JEEVES...",
-    "DEFRAGMENTING_FLOPPY_DISK...",
-    "REWINDING_VHS_TAPE...",
-    "ADJUSTING_RABBIT_EARS...",
-    "BLOWING_ON_CARTRIDGE...",
-    "WAITING_FOR_DIAL_UP...",
-    "FEEDING_TAMAGOTCHI...",
-    "PETTING_NEOPET...",
-    "CHECKING_MYSPACE_TOP_8...",
-    "UPDATING_AWAY_MESSAGE...",
-    "BURNING_CD...",
-    "LIMEWIRE_DOWNLOAD_99%...",
-    "KAZAA_VIRUS_DETECTED...",
-    "CLIPPY_SAYS_HI...",
-    "SCREENSAVER_ACTIVATED...",
-    "WINDOWS_XP_STARTUP_SOUND...",
-    "NETSCAPE_NAVIGATOR_LOADING...",
-    "GEOCITIES_PAGE_RENDERING...",
-    "HAMSTER_DANCE_INTENSIFIES...",
-    "BADGER_BADGER_BADGER...",
-    "ALL_YOUR_BASE_ARE_BELONG_TO_US",
-    "LEROY_JENKINS!!!",
-    "OVER_9000!!!",
-    "DO_A_BARREL_ROLL!",
-    "IT'S_DANGEROUS_TO_GO_ALONE",
-    "THE_CAKE_IS_A_LIE",
-    "PRESS_F_TO_PAY_RESPECTS",
-    "STONKS_RISING...",
-    "LOADING_DANK_MEMES...",
-    "INITIALIZING_SHITPOST_ENGINE...",
-    "COMPILING_CRINGE...",
-    "DOWNLOADING_VIBE_CHECK...",
-    "RATIO_INCOMING...",
-    "TOUCH_GRASS_PROTOCOL_FAILED",
-    "NO_BITCHES?",
-    "EMOTIONAL_DAMAGE!"
-  ];
-
   const handleWarningEnd = () => {
-    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    setIntroQuote(randomQuote);
-    setIntroStage('quote');
-    
+    setIntroStage('zoom');
     setTimeout(() => {
       setIntroStage('done');
       setShowIntro(false);
       setShowWelcome(true);
-      setTimeout(() => setShowWelcome(false), 3000);
-    }, 3000);
+      setTimeout(() => setShowWelcome(false), 5000);
+    }, 4000);
   };
 
   useEffect(() => {
@@ -482,7 +425,7 @@ export default function Home() {
 
   return (
     <div 
-      className="min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black"
+      className={`min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black ${!showIntro && introStage === 'done' ? 'animate-fade-in' : ''}`}
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
@@ -504,11 +447,17 @@ export default function Home() {
         </div>
       )}
 
-      {showIntro && introStage === 'quote' && (
-        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center animate-fade-in">
-          <h1 className="text-6xl md:text-8xl text-[#00ff00] text-shadow-neon font-bold animate-pulse">
-            {introQuote}
-          </h1>
+      {showIntro && introStage === 'zoom' && (
+        <div className="fixed inset-0 z-[300] bg-black overflow-hidden">
+          <div 
+            className="w-full h-full"
+            style={{ 
+              backgroundImage: `url(${bgGif})`, 
+              backgroundSize: "cover", 
+              backgroundPosition: "center",
+              animation: "fadeInZoom 4s ease-out forwards"
+            }}
+          />
         </div>
       )}
 
