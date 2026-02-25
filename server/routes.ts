@@ -172,17 +172,24 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Query required" });
     }
 
-    const apiKey = process.env.GIPHY_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ message: "Giphy API key not configured" });
-    }
-
+    const apiKey = process.env.TENOR_API_KEY || "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ"; // Default Tenor key
+    
     try {
       const response = await fetch(
-        `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=20`
+        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${apiKey}&limit=20`
       );
       const data = await response.json();
-      res.json(data);
+      // Convert Tenor format to match Giphy format
+      const converted = {
+        data: data.results?.map((gif: any) => ({
+          images: {
+            fixed_height: {
+              url: gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url
+            }
+          }
+        })) || []
+      };
+      res.json(converted);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch GIFs" });
     }
