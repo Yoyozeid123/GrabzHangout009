@@ -320,23 +320,8 @@ export default function Home() {
     if (username) {
       setShowIntro(true);
       setIntroStage('warning');
-      // Auto-play video after a short delay
-      setTimeout(() => {
-        if (warningVideoRef.current) {
-          warningVideoRef.current.play().catch(err => {
-            console.error('Video play error:', err);
-            handleWarningEnd();
-          });
-        }
-      }, 100);
     }
   }, [username]);
-
-  useEffect(() => {
-    if (showIntro && introStage === 'warning' && warningVideoRef.current) {
-      console.log('Video element ready');
-    }
-  }, [showIntro, introStage]);
 
   if (!username) {
     return (
@@ -395,20 +380,33 @@ export default function Home() {
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
       {showIntro && introStage === 'warning' && (
-        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center" onClick={handleWarningEnd}>
+        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
           <video
             ref={warningVideoRef}
             src="/WARNING.mp4"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
             playsInline
             onEnded={handleWarningEnd}
+            onClick={(e) => {
+              const video = e.currentTarget;
+              if (video.paused) {
+                video.play().catch(err => {
+                  console.error('Video play error:', err);
+                  handleWarningEnd();
+                });
+              } else {
+                handleWarningEnd();
+              }
+            }}
             onError={(e) => {
               console.error('Video error:', e);
               handleWarningEnd();
             }}
           />
-          <div className="absolute bottom-4 text-[#00ff00] text-xl animate-pulse">
-            CLICK TO SKIP
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-[#00ff00] text-4xl animate-pulse bg-black/80 px-8 py-4 border-4 border-[#00ff00]">
+              CLICK TO START
+            </div>
           </div>
         </div>
       )}
