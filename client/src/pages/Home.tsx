@@ -6,9 +6,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
 import { RetroInput } from "@/components/RetroInput";
 import { GifPicker } from "@/components/GifPicker";
-import { ReactionGame } from "@/components/ReactionGame";
-import { DrawGame } from "@/components/DrawGame";
-import { DuelGame } from "@/components/DuelGame";
+import { SnakeGame } from "@/components/SnakeGame";
 
 // Static Assets mapped via Vite aliases
 import bgGif from "@assets/BG_1771938204124.gif";
@@ -74,7 +72,7 @@ export default function Home() {
   const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>('warning');
   const [showWelcome, setShowWelcome] = useState(false);
   const [showGames, setShowGames] = useState(false);
-  const [activeGame, setActiveGame] = useState<'reaction' | 'draw' | 'duel' | null>(null);
+  const [activeGame, setActiveGame] = useState<'snake' | null>(null);
   const [gameData, setGameData] = useState<any>(null);
   const [roomName, setRoomName] = useState<string>("");
   const [roomInput, setRoomInput] = useState("");
@@ -733,43 +731,16 @@ export default function Home() {
               <button onClick={() => setShowGames(false)} className="text-[#ff6f61] text-2xl">✕</button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Reaction Game */}
-              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { 
-                setActiveGame('reaction'); 
+            <div className="flex justify-center">
+              <div className="bg-black border-2 border-[#00ff00] p-8 hover:border-[#ff6f61] cursor-pointer transition-colors max-w-md" onClick={() => { 
+                setActiveGame('snake'); 
                 setShowGames(false); 
-                broadcastGame({ type: 'reaction', active: true });
+                broadcastGame({ type: 'snake', active: true });
               }}>
-                <div className="text-6xl text-center mb-2">🎯</div>
-                <h3 className="text-xl text-[#00ff00] text-center mb-2">REACTION TEST</h3>
-                <p className="text-[#00ff00] text-sm opacity-70 text-center">
-                  Admin triggers event. Fastest clicker wins!
-                </p>
-              </div>
-
-              {/* Drawing Game */}
-              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { 
-                setActiveGame('draw'); 
-                setShowGames(false); 
-                broadcastGame({ type: 'draw', active: true, drawer: username });
-              }}>
-                <div className="text-6xl text-center mb-2">🎨</div>
-                <h3 className="text-xl text-[#00ff00] text-center mb-2">DRAW & GUESS</h3>
-                <p className="text-[#00ff00] text-sm opacity-70 text-center">
-                  Draw a word. Others guess in chat!
-                </p>
-              </div>
-
-              {/* Quick Draw Duel */}
-              <div className="bg-black border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] cursor-pointer transition-colors" onClick={() => { 
-                setActiveGame('duel'); 
-                setShowGames(false); 
-                broadcastGame({ type: 'duel', active: true });
-              }}>
-                <div className="text-6xl text-center mb-2">🔫</div>
-                <h3 className="text-xl text-[#00ff00] text-center mb-2">QUICK DRAW</h3>
-                <p className="text-[#00ff00] text-sm opacity-70 text-center">
-                  1v1 reaction duel. Fastest draw wins!
+                <div className="text-8xl text-center mb-4">🐍</div>
+                <h3 className="text-2xl text-[#00ff00] text-center mb-4">MULTIPLAYER SNAKE</h3>
+                <p className="text-[#00ff00] text-lg opacity-70 text-center">
+                  Classic snake game! Compete with others in real-time. Eat food, grow longer, don't crash!
                 </p>
               </div>
             </div>
@@ -777,34 +748,13 @@ export default function Home() {
         </div>
       )}
 
-      {activeGame === 'reaction' && (
-        <ReactionGame 
+      {activeGame === 'snake' && (
+        <SnakeGame 
           username={username!}
           isAdmin={isAdmin}
           onClose={() => setActiveGame(null)}
           broadcastGame={broadcastGame}
           gameData={gameData}
-        />
-      )}
-
-      {activeGame === 'draw' && (
-        <DrawGame 
-          username={username!}
-          isAdmin={isAdmin}
-          onClose={() => setActiveGame(null)}
-          broadcastGame={broadcastGame}
-          gameData={gameData}
-        />
-      )}
-
-      {activeGame === 'duel' && (
-        <DuelGame 
-          username={username!}
-          isAdmin={isAdmin}
-          onClose={() => setActiveGame(null)}
-          broadcastGame={broadcastGame}
-          gameData={gameData}
-          onlineUsers={onlineUsers}
         />
       )}
 
