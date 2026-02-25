@@ -32,17 +32,27 @@ export default function Home() {
   const sendMessage = useSendMessage();
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
-  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, showConfetti: wsConfetti, showJumpscare: wsJumpscare } = useWebSocket(username);
+  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger } = useWebSocket(username);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
 
   useEffect(() => {
-    if (wsConfetti) setShowConfetti(true);
-  }, [wsConfetti]);
+    if (confettiTrigger > 0) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+    }
+  }, [confettiTrigger]);
 
   useEffect(() => {
-    if (wsJumpscare) setShowJumpscare(true);
-  }, [wsJumpscare]);
+    if (jumpscareTrigger > 0) {
+      setShowJumpscare(true);
+      if (jumpscareVideoRef.current) {
+        jumpscareVideoRef.current.currentTime = 0;
+        jumpscareVideoRef.current.play().catch(err => console.error("Video play error:", err));
+      }
+      setTimeout(() => setShowJumpscare(false), 5000);
+    }
+  }, [jumpscareTrigger]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
@@ -197,13 +207,17 @@ export default function Home() {
       )}
 
       {showJumpscare && (
-        <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
+        <div 
+          className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
+          onClick={() => setShowJumpscare(false)}
+        >
           <video
             ref={jumpscareVideoRef}
             src="/360p-watermark.mp4"
             className="w-full h-full object-cover"
             autoPlay
-            muted={false}
+            playsInline
+            onEnded={() => setShowJumpscare(false)}
           />
         </div>
       )}

@@ -5,8 +5,8 @@ export function useWebSocket(username: string | null) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [showJumpscare, setShowJumpscare] = useState(false);
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const [jumpscareTrigger, setJumpscareTrigger] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,11 +34,9 @@ export function useWebSocket(username: string | null) {
         } else if (data.type === "newMessage") {
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
         } else if (data.type === "confetti") {
-          setShowConfetti(true);
-          setTimeout(() => setShowConfetti(false), 3000);
+          setConfettiTrigger(prev => prev + 1);
         } else if (data.type === "jumpscare") {
-          setShowJumpscare(true);
-          setTimeout(() => setShowJumpscare(false), 5000);
+          setJumpscareTrigger(prev => prev + 1);
         } else if (data.type === "deleteMessage") {
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
         }
@@ -80,5 +78,5 @@ export function useWebSocket(username: string | null) {
     }
   }, []);
 
-  return { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, showConfetti, showJumpscare };
+  return { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger };
 }
