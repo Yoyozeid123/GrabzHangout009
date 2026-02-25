@@ -4,6 +4,7 @@ import { RetroButton } from "./RetroButton";
 interface SnakeGameProps {
   username: string;
   isAdmin: boolean;
+  isRoomOwner: boolean;
   onClose: () => void;
   broadcastGame: (data: any) => void;
   gameData: any;
@@ -20,7 +21,7 @@ interface Player {
 const GRID_SIZE = 20;
 const CELL_SIZE = 20;
 
-export function SnakeGame({ username, isAdmin, onClose, broadcastGame, gameData }: SnakeGameProps) {
+export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGame, gameData }: SnakeGameProps) {
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [food, setFood] = useState({ x: 10, y: 10 });
   const [gameStarted, setGameStarted] = useState(false);
@@ -221,12 +222,12 @@ export function SnakeGame({ username, isAdmin, onClose, broadcastGame, gameData 
         {!gameStarted ? (
           <div className="text-center">
             <p className="text-[#00ff00] text-xl mb-4">Use arrow keys to control your snake!</p>
-            {isAdmin && (
+            {(isAdmin || isRoomOwner) && (
               <RetroButton onClick={startGame} className="text-xl px-8 py-4">
                 START GAME
               </RetroButton>
             )}
-            {!isAdmin && <p className="text-[#00ff00] animate-pulse">Waiting for admin to start...</p>}
+            {!isAdmin && !isRoomOwner && <p className="text-[#00ff00] animate-pulse">Waiting for admin to start...</p>}
           </div>
         ) : (
           <>

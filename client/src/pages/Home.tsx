@@ -756,6 +756,7 @@ export default function Home() {
         <SnakeGame 
           username={username!}
           isAdmin={isAdmin}
+          isRoomOwner={isRoomOwner}
           onClose={() => setActiveGame(null)}
           broadcastGame={broadcastGame}
           gameData={gameData}
