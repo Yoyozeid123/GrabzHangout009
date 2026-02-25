@@ -852,7 +852,7 @@ export default function Home() {
               className="w-12 md:w-16 flex items-center justify-center text-[#ff6f61]"
               title="Send GIF"
             >
-              <img src="/icons/Gif.png" alt="GIF" className="w-8 h-8" style={{ imageRendering: 'pixelated' }} />
+              <img src="/icons/Gif.png" alt="GIF" className="w-12 h-12" style={{ imageRendering: 'pixelated' }} />
             </RetroButton>
 
             <input 
