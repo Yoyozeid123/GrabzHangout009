@@ -682,14 +682,14 @@ export default function Home() {
                 className="md:hidden text-[#00ff00] hover:text-[#ff6f61]"
                 title="Users"
               >
-                <span className="text-2xl">👥</span>
+                <Users className="w-5 h-5" />
               </button>
               <button 
                 onClick={handleDownloadHistory}
                 className="text-[#00ff00] hover:text-[#ff6f61]"
                 title="Download Chat History"
               >
-                <span className="text-2xl">💾</span>
+                <Download className="w-5 h-5" />
               </button>
               {isAdmin && (
                 <button 
@@ -697,7 +697,7 @@ export default function Home() {
                   className="text-[#00ff00] hover:text-[#ff6f61]"
                   title="Games (Admin)"
                 >
-                  <span className="text-2xl">🎮</span>
+                  <Gamepad2 className="w-5 h-5" />
                 </button>
               )}
               <button 
@@ -705,7 +705,7 @@ export default function Home() {
                 className="text-[#00ff00] hover:text-[#ff6f61]"
                 title="Profile Settings"
               >
-                <span className="text-2xl">⚙️</span>
+                <Settings className="w-5 h-5" />
               </button>
             </div>
           </header>
@@ -820,7 +820,7 @@ export default function Home() {
               disabled={!text.trim() || sendMessage.isPending}
               className="w-20 md:w-24 flex items-center justify-center gap-2"
             >
-              <span className="text-xl hidden md:block">📤</span>
+              <Send className="w-5 h-5 hidden md:block" />
               SEND
             </RetroButton>
 
@@ -852,7 +852,7 @@ export default function Home() {
               className="w-12 md:w-16 flex items-center justify-center text-[#ff6f61]"
               title="Send GIF"
             >
-              <img src="/icons/Gif.png" alt="GIF" className="w-12 h-12" style={{ imageRendering: 'pixelated' }} />
+              <Smile className="w-5 h-5" />
             </RetroButton>
 
             <input 
@@ -870,7 +870,7 @@ export default function Home() {
               className={`w-12 md:w-16 flex items-center justify-center ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#ff6f61]'}`}
               title={isRecording ? "Stop Recording" : "Record Voice"}
             >
-              <span className="text-2xl">{isRecording ? '⏹' : '🎤'}</span>
+              {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </RetroButton>
 
             <RetroButton 
@@ -881,7 +881,7 @@ export default function Home() {
               className="w-12 md:w-16 flex items-center justify-center text-[#ff6f61]"
               title="Upload Meme"
             >
-              <span className="text-2xl">🖼️</span>
+              <Upload className="w-5 h-5" />
             </RetroButton>
           </form>
           
