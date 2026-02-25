@@ -22,6 +22,10 @@ const upload = storage_multer.single("file");
 const uploadVoice = storage_multer.single("voice");
 
 const onlineUsers = new Map<WebSocket, { username: string; room: string }>();
+const rooms = new Map<string, { password?: string; created: Date }>();
+
+// Initialize main room
+rooms.set("main", { password: "Grabzfeetfeet", created: new Date() });
 const typingUsers = new Set<string>();
 
 // Simple NSFW keyword filter (no AWS needed)
@@ -220,6 +224,44 @@ export async function registerRoutes(
       console.error("Tenor API error:", error);
       res.status(500).json({ message: "Failed to fetch GIFs", data: [] });
     }
+  });
+
+  app.get("/api/rooms", (req, res) => {
+    const roomList = Array.from(rooms.entries()).map(([name, data]) => ({
+      name,
+      hasPassword: !!data.password,
+      userCount: getUsersInRoom(name).length
+    }));
+    res.json(roomList);
+  });
+
+  app.post("/api/rooms", (req, res) => {
+    const { name, password } = req.body;
+    if (!name || typeof name !== "string") {
+      return res.status(400).json({ message: "Room name required" });
+    }
+    
+    if (rooms.has(name)) {
+      return res.status(400).json({ message: "Room already exists" });
+    }
+    
+    rooms.set(name, { password, created: new Date() });
+    res.json({ success: true, name });
+  });
+
+  app.post("/api/rooms/verify", (req, res) => {
+    const { name, password } = req.body;
+    const room = rooms.get(name);
+    
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+    
+    if (room.password && room.password !== password) {
+      return res.status(401).json({ message: "Wrong password" });
+    }
+    
+    res.json({ success: true });
   });
 
   app.delete(api.messages.delete.path, async (req, res) => {

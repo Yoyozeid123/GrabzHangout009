@@ -81,6 +81,7 @@ export default function Home() {
   const [roomPassword, setRoomPassword] = useState("");
   const [showRoomSelect, setShowRoomSelect] = useState(true);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
@@ -202,10 +203,16 @@ export default function Home() {
     localStorage.setItem("chatUsername", name);
   };
 
-  const handleJoinRoom = (room: string, password?: string) => {
-    // Check password for main room
-    if (room === "main" && password !== "Grabzfeetfeet") {
-      alert("❌ Wrong password for main room!");
+  const handleJoinRoom = async (room: string, password?: string) => {
+    // Verify password
+    const res = await fetch('/api/rooms/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: room, password })
+    });
+    
+    if (!res.ok) {
+      alert("❌ Wrong password or room not found!");
       return;
     }
     
@@ -213,15 +220,35 @@ export default function Home() {
     setShowRoomSelect(false);
   };
 
-  const handleCreateRoom = (e: React.FormEvent) => {
+  const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roomInput.trim()) return;
     
     const room = roomInput.trim();
+    const res = await fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: room, password: roomPassword || undefined })
+    });
+    
+    if (!res.ok) {
+      alert("❌ Room already exists!");
+      return;
+    }
+    
     setRoomName(room);
     setShowRoomSelect(false);
     setShowCreateRoom(false);
   };
+
+  useEffect(() => {
+    if (showRoomSelect) {
+      fetch('/api/rooms')
+        .then(res => res.json())
+        .then(data => setAvailableRooms(data))
+        .catch(err => console.error("Failed to fetch rooms:", err));
+    }
+  }, [showRoomSelect]);
 
   const handleSendText = (e: React.FormEvent) => {
     e.preventDefault();
@@ -417,20 +444,29 @@ export default function Home() {
 
           {!showCreateRoom ? (
             <div className="space-y-4">
-              <div>
-                <RetroInput
-                  value={roomPassword}
-                  type="password"
-                  onChange={(e) => setRoomPassword(e.target.value)}
-                  placeholder="> MAIN ROOM PASSWORD..."
-                  maxLength={50}
-                />
-                <RetroButton 
-                  onClick={() => handleJoinRoom("main", roomPassword)}
-                  className="w-full mt-2"
-                >
-                  JOIN MAIN ROOM
-                </RetroButton>
+              <div className="max-h-64 overflow-y-auto retro-scrollbar space-y-2">
+                {availableRooms.map(room => (
+                  <div key={room.name} className="bg-black border-2 border-[#00ff00] p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[#00ff00] font-bold">{room.name.toUpperCase()}</span>
+                      <span className="text-[#00ff00] text-sm">👥 {room.userCount}</span>
+                    </div>
+                    {room.hasPassword && (
+                      <RetroInput
+                        type="password"
+                        placeholder="> PASSWORD..."
+                        onChange={(e) => setRoomPassword(e.target.value)}
+                        className="mb-2"
+                      />
+                    )}
+                    <RetroButton 
+                      onClick={() => handleJoinRoom(room.name, roomPassword)}
+                      className="w-full"
+                    >
+                      JOIN {room.hasPassword ? '🔒' : ''}
+                    </RetroButton>
+                  </div>
+                ))}
               </div>
 
               <div className="text-center text-[#00ff00] opacity-70">- OR -</div>
