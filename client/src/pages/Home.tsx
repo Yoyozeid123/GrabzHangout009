@@ -320,18 +320,23 @@ export default function Home() {
     if (username) {
       setShowIntro(true);
       setIntroStage('warning');
+      // Auto-play video after a short delay
+      setTimeout(() => {
+        if (warningVideoRef.current) {
+          warningVideoRef.current.play().catch(err => {
+            console.error('Video play error:', err);
+            handleWarningEnd();
+          });
+        }
+      }, 100);
     }
   }, [username]);
 
   useEffect(() => {
-    if (showIntro && introStage === 'warning' && warningVideoRef.current && username) {
-      console.log('Attempting to play warning video');
-      warningVideoRef.current.play().catch(err => {
-        console.error('Video play error:', err);
-        handleWarningEnd();
-      });
+    if (showIntro && introStage === 'warning' && warningVideoRef.current) {
+      console.log('Video element ready');
     }
-  }, [showIntro, introStage, username]);
+  }, [showIntro, introStage]);
 
   if (!username) {
     return (
