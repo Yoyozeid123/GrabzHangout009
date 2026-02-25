@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile } from "lucide-react";
-import { useMessages, useSendMessage, useUploadImage } from "@/hooks/use-messages";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2 } from "lucide-react";
+import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
 import { RetroInput } from "@/components/RetroInput";
@@ -27,6 +27,7 @@ export default function Home() {
   const { data: messages = [], isLoading } = useMessages();
   const sendMessage = useSendMessage();
   const uploadImage = useUploadImage();
+  const deleteMessage = useDeleteMessage();
   const { onlineCount, onlineUsers, typingUsers, sendTyping } = useWebSocket(username);
 
   useEffect(() => {
@@ -201,22 +202,41 @@ export default function Home() {
                 </div>
               ) : (
                 messages.map((msg, idx) => (
-                  <div key={msg.id || idx} className="text-xl break-words">
+                  <div key={msg.id || idx} className="text-xl break-words group relative">
                     <span className="text-[#ff6f61] mr-2">
                       [{msg.createdAt ? format(new Date(msg.createdAt), "HH:mm:ss") : "00:00:00"}]
                     </span>
                     <span className="text-[#00aa00] mr-2 font-bold">&lt;{msg.username || "Guest"}&gt;</span>
                     
                     {msg.type === "image" || msg.type === "gif" ? (
-                      <div className="mt-2 mb-2 inline-block">
+                      <div className="mt-2 mb-2 inline-block relative">
                         <img 
                           src={msg.content} 
                           alt={msg.type === "gif" ? "GIF" : "User uploaded meme"} 
                           className="max-w-xs md:max-w-md border-2 border-[#00ff00] p-1 bg-black box-shadow-retro"
                         />
+                        {msg.username === username && (
+                          <button
+                            onClick={() => deleteMessage.mutate(msg.id)}
+                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <span className="text-[#00ff00]">{msg.content}</span>
+                    )}
+                    
+                    {msg.type === "text" && msg.username === username && (
+                      <button
+                        onClick={() => deleteMessage.mutate(msg.id)}
+                        className="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4 inline" />
+                      </button>
                     )}
                   </div>
                 ))

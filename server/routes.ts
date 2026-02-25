@@ -8,6 +8,8 @@ import path from "path";
 import fs from "fs";
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
+import { RekognitionClient, DetectModerationLabelsCommand } from "@aws-sdk/client-rekognition";
+import axios from "axios";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -18,6 +20,33 @@ const upload = multer({ dest: UPLOAD_DIR });
 
 const onlineUsers = new Map<WebSocket, string>();
 const typingUsers = new Set<string>();
+
+const rekognition = new RekognitionClient({ region: process.env.AWS_REGION || "us-east-1" });
+
+async function moderateImage(imageBuffer: Buffer): Promise<boolean> {
+  try {
+    const command = new DetectModerationLabelsCommand({
+      Image: { Bytes: imageBuffer },
+      MinConfidence: 60
+    });
+    const response = await rekognition.send(command);
+    return (response.ModerationLabels?.length || 0) > 0;
+  } catch (error) {
+    console.error("Moderation error:", error);
+    return false;
+  }
+}
+
+async function moderateGif(gifUrl: string): Promise<boolean> {
+  try {
+    const response = await axios.get(gifUrl, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data);
+    return await moderateImage(buffer);
+  } catch (error) {
+    console.error("GIF moderation error:", error);
+    return false;
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -92,6 +121,14 @@ export async function registerRoutes(
   app.post(api.messages.create.path, async (req, res) => {
     try {
       const input = api.messages.create.input.parse(req.body);
+      
+      if (input.type === "gif") {
+        const isNsfw = await moderateGif(input.content);
+        if (isNsfw) {
+          return res.status(400).json({ message: "Content blocked: NSFW detected" });
+        }
+      }
+      
       const msg = await storage.createMessage(input);
       broadcast({ type: "newMessage", message: msg });
       res.status(201).json(msg);
@@ -106,10 +143,19 @@ export async function registerRoutes(
     }
   });
 
-  app.post(api.uploads.create.path, upload.single("file"), (req, res) => {
+  app.post(api.uploads.create.path, upload.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
+    
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const isNsfw = await moderateImage(imageBuffer);
+    
+    if (isNsfw) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: "Content blocked: NSFW detected" });
+    }
+    
     res.status(201).json({ filename: req.file.filename });
   });
 
@@ -132,6 +178,17 @@ export async function registerRoutes(
       res.json(data);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch GIFs" });
+    }
+  });
+
+  app.delete(api.messages.delete.path, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteMessage(id);
+      broadcast({ type: "deleteMessage", id });
+      res.status(200).json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete message" });
     }
   });
 

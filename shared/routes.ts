@@ -29,6 +29,14 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/messages/:id' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        500: errorSchemas.internal,
+      },
+    },
   },
   uploads: {
     create: {

@@ -103,3 +103,31 @@ export function useUploadImage() {
     }
   });
 }
+
+export function useDeleteMessage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const path = api.messages.delete.path.replace(':id', String(id));
+      const res = await fetch(path, {
+        method: api.messages.delete.method,
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete message");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.messages.list.path] });
+    },
+    onError: (error) => {
+      toast({
+        title: "DELETE FAILED",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+}
