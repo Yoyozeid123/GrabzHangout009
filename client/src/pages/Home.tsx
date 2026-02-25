@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
@@ -65,8 +65,11 @@ export default function Home() {
   const [showJumpscare, setShowJumpscare] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [userPfps, setUserPfps] = useState<Record<string, string>>({});
+  const [showProfile, setShowProfile] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pfpInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   
@@ -225,6 +228,49 @@ export default function Home() {
     }
   };
 
+  const handlePfpUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !username) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('username', username);
+
+    const res = await fetch('/api/upload-pfp', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setUserPfps(prev => ({ ...prev, [username]: data.pfp }));
+      alert('✅ Profile picture updated!');
+    }
+  };
+
+  const handleUsernameChange = () => {
+    if (!newUsername.trim()) return;
+    
+    const name = newUsername.trim();
+    
+    if (name.toLowerCase() === "yofez009") {
+      alert("❌ Cannot change to admin username!");
+      return;
+    }
+    
+    setUsername(name);
+    localStorage.setItem("chatUsername", name);
+    setShowProfile(false);
+    setNewUsername("");
+    alert('✅ Username changed! Refresh to see changes.');
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem("chatUsername");
+    setUsername(null);
+    setShowProfile(false);
+  };
+
   if (!username) {
     return (
       <div 
@@ -324,6 +370,69 @@ export default function Home() {
         />
       )}
 
+      {showProfile && (
+        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowProfile(false)}>
+          <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl text-[#00ff00] text-shadow-neon">PROFILE SETTINGS</h2>
+              <button onClick={() => setShowProfile(false)} className="text-[#ff6f61] text-2xl">✕</button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Profile Picture */}
+              <div className="text-center">
+                {userPfps[username!] ? (
+                  <img src={userPfps[username!]} alt="Profile" className="w-24 h-24 rounded-full border-4 border-[#00ff00] mx-auto mb-2" />
+                ) : (
+                  <div className="w-24 h-24 rounded-full border-4 border-[#00ff00] bg-black mx-auto mb-2 flex items-center justify-center text-4xl">
+                    👤
+                  </div>
+                )}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={pfpInputRef} 
+                  onChange={handlePfpUpload}
+                />
+                <RetroButton onClick={() => pfpInputRef.current?.click()} className="w-full">
+                  <Upload className="w-4 h-4 inline mr-2" />
+                  CHANGE PROFILE PICTURE
+                </RetroButton>
+              </div>
+
+              {/* Current Username */}
+              <div>
+                <label className="text-[#00ff00] block mb-2">CURRENT USERNAME:</label>
+                <div className="bg-black border-2 border-[#00ff00] p-2 text-[#00ff00]">
+                  {username}
+                </div>
+              </div>
+
+              {/* Change Username */}
+              <div>
+                <label className="text-[#00ff00] block mb-2">NEW USERNAME:</label>
+                <RetroInput
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="> TYPE NEW USERNAME..."
+                  maxLength={20}
+                />
+                <RetroButton onClick={handleUsernameChange} disabled={!newUsername.trim()} className="w-full mt-2">
+                  UPDATE USERNAME
+                </RetroButton>
+              </div>
+
+              {/* Sign Out */}
+              <RetroButton onClick={handleSignOut} variant="secondary" className="w-full text-[#ff6f61]">
+                <LogOut className="w-4 h-4 inline mr-2" />
+                SIGN OUT
+              </RetroButton>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-6xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-4 md:p-8 z-20">
         
         {/* User List Sidebar */}
@@ -357,6 +466,13 @@ export default function Home() {
                 className="md:hidden text-[#00ff00] hover:text-[#ff6f61]"
               >
                 <Users className="w-6 h-6" />
+              </button>
+              <button 
+                onClick={() => setShowProfile(true)}
+                className="text-[#00ff00] hover:text-[#ff6f61]"
+                title="Profile Settings"
+              >
+                <Settings className="w-6 h-6" />
               </button>
             </div>
           </header>
