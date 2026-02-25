@@ -723,7 +723,7 @@ export default function Home() {
           </header>
 
           <marquee className="text-[#00ff00] text-xl border-y-2 border-dashed border-[#00ff00] py-2 mb-4 bg-black/80">
-            *** WELCOME TO GRABZHANGOUT009 *** THE COOLEST CHATROOM ON THE WORLD WIDE WEB *** UPLOAD YOUR DANKEST MEMES *** NO LURKING ALLOWED ***
+            *** ROOM: {roomName.toUpperCase()} *** WELCOME TO GRABZHANGOUT009 *** THE COOLEST CHATROOM ON THE WORLD WIDE WEB *** UPLOAD YOUR DANKEST MEMES *** NO LURKING ALLOWED ***
           </marquee>
 
           <div className="flex-1 flex flex-col bg-black/85 border-4 border-[#00ff00] box-shadow-retro mb-4 min-h-0">
