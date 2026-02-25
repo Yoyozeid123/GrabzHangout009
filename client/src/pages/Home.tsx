@@ -71,17 +71,19 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [showIntro, setShowIntro] = useState(true);
-  const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>('warning');
+  const [introQuote, setIntroQuote] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
   const [showGames, setShowGames] = useState(false);
   const [activeGame, setActiveGame] = useState<'reaction' | 'draw' | 'duel' | null>(null);
   const [gameData, setGameData] = useState<any>(null);
+  const [roomName, setRoomName] = useState<string>(localStorage.getItem("chatRoom") || "main");
+  const [roomInput, setRoomInput] = useState("");
+  const [showRoomSelect, setShowRoomSelect] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const warningVideoRef = useRef<HTMLVideoElement>(null);
 
   // Clear old pfps on version change
   useEffect(() => {
@@ -104,7 +106,7 @@ export default function Home() {
   const sendMessage = useSendMessage();
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
-  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger, gameData: wsGameData } = useWebSocket(username);
+  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger, gameData: wsGameData } = useWebSocket(username, roomName);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
 
@@ -185,6 +187,7 @@ export default function Home() {
     if (!usernameInput.trim()) return;
     
     const name = usernameInput.trim();
+    const room = roomInput.trim() || "main";
     
     if (name.toLowerCase() === "yofez009") {
       if (passwordInput !== "Yofez!123") {
@@ -194,7 +197,9 @@ export default function Home() {
     }
     
     setUsername(name);
+    setRoomName(room);
     localStorage.setItem("chatUsername", name);
+    localStorage.setItem("chatRoom", room);
   };
 
   const handleSendText = (e: React.FormEvent) => {
@@ -345,23 +350,69 @@ export default function Home() {
     window.location.href = '/api/messages/export';
   };
 
-  const handleWarningEnd = () => {
-    console.log('Warning video ended');
-    setIntroStage('zoom');
-    setTimeout(() => {
-      console.log('Starting fade in');
-      setIntroStage('done');
-      setShowIntro(false);
-      setShowWelcome(true);
-      setTimeout(() => setShowWelcome(false), 5000);
-    }, 4000); // 1s fade + 3s zoom = 4s total
-  };
+  const quotes = [
+    "LOADING_MEMES...",
+    "INITIALIZING_CHAOS_PROTOCOL...",
+    "DOWNLOADING_MORE_RAM...",
+    "HACKING_THE_MAINFRAME...",
+    "DELETING_SYSTEM32...",
+    "INSTALLING_BONZI_BUDDY...",
+    "CONNECTING_TO_AOL...",
+    "YOU_GOT_MAIL!",
+    "BUFFERING_90s_NOSTALGIA...",
+    "RETICULATING_SPLINES...",
+    "WARMING_UP_PARTICLE_ACCELERATOR...",
+    "DIVIDING_BY_ZERO...",
+    "SPINNING_UP_HAMSTER_WHEELS...",
+    "CONSULTING_MAGIC_8_BALL...",
+    "ASKING_JEEVES...",
+    "DEFRAGMENTING_FLOPPY_DISK...",
+    "REWINDING_VHS_TAPE...",
+    "ADJUSTING_RABBIT_EARS...",
+    "BLOWING_ON_CARTRIDGE...",
+    "WAITING_FOR_DIAL_UP...",
+    "FEEDING_TAMAGOTCHI...",
+    "PETTING_NEOPET...",
+    "CHECKING_MYSPACE_TOP_8...",
+    "UPDATING_AWAY_MESSAGE...",
+    "BURNING_CD...",
+    "LIMEWIRE_DOWNLOAD_99%...",
+    "KAZAA_VIRUS_DETECTED...",
+    "CLIPPY_SAYS_HI...",
+    "SCREENSAVER_ACTIVATED...",
+    "WINDOWS_XP_STARTUP_SOUND...",
+    "NETSCAPE_NAVIGATOR_LOADING...",
+    "GEOCITIES_PAGE_RENDERING...",
+    "HAMSTER_DANCE_INTENSIFIES...",
+    "BADGER_BADGER_BADGER...",
+    "ALL_YOUR_BASE_ARE_BELONG_TO_US",
+    "LEROY_JENKINS!!!",
+    "OVER_9000!!!",
+    "DO_A_BARREL_ROLL!",
+    "IT'S_DANGEROUS_TO_GO_ALONE",
+    "THE_CAKE_IS_A_LIE",
+    "PRESS_F_TO_PAY_RESPECTS",
+    "STONKS_RISING...",
+    "LOADING_DANK_MEMES...",
+    "INITIALIZING_SHITPOST_ENGINE...",
+    "COMPILING_CRINGE...",
+    "DOWNLOADING_VIBE_CHECK...",
+    "RATIO_INCOMING...",
+    "TOUCH_GRASS_PROTOCOL_FAILED",
+    "NO_BITCHES?",
+    "EMOTIONAL_DAMAGE!"
+  ];
 
   useEffect(() => {
-    // Reset intro when username changes (new login)
-    if (username) {
-      setShowIntro(true);
-      setIntroStage('warning');
+    if (username && showIntro) {
+      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      setIntroQuote(randomQuote);
+      
+      setTimeout(() => {
+        setShowIntro(false);
+        setShowWelcome(true);
+        setTimeout(() => setShowWelcome(false), 3000);
+      }, 3000);
     }
   }, [username]);
 
@@ -392,6 +443,12 @@ export default function Home() {
               maxLength={20}
               autoFocus
             />
+            <RetroInput
+              value={roomInput}
+              onChange={(e) => setRoomInput(e.target.value)}
+              placeholder="> ROOM NAME (leave empty for main)..."
+              maxLength={30}
+            />
             {usernameInput.toLowerCase() === "yofez009" && (
               <RetroInput
                 type="password"
@@ -416,19 +473,18 @@ export default function Home() {
 
   return (
     <div 
-      className={`min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black ${!showIntro && introStage === 'done' ? 'animate-fade-in' : ''}`}
+      className="min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black"
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
-      {showIntro && introStage === 'warning' && (
-        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
-          <video
-            ref={warningVideoRef}
-            src="/WARNING.mp4"
-            className="w-full h-full object-cover cursor-pointer"
-            playsInline
-            onEnded={handleWarningEnd}
+      {showIntro && (
+        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center animate-fade-in">
+          <h1 className="text-6xl md:text-8xl text-[#00ff00] text-shadow-neon font-bold animate-pulse">
+            {introQuote}
+          </h1>
+        </div>
+      )}
             onClick={(e) => {
               const video = e.currentTarget;
               if (video.paused) {
@@ -448,20 +504,6 @@ export default function Home() {
           <div className="absolute bottom-4 right-4 text-[#00ff00] text-xl bg-black/80 px-4 py-2 border-2 border-[#00ff00] animate-pulse pointer-events-none">
             SKIP CUTSCENE →
           </div>
-        </div>
-      )}
-
-      {showIntro && introStage === 'zoom' && (
-        <div className="fixed inset-0 z-[300] bg-black overflow-hidden" style={{ pointerEvents: 'none' }}>
-          <div 
-            className="w-full h-full"
-            style={{ 
-              backgroundImage: `url(${bgGif})`, 
-              backgroundSize: "cover", 
-              backgroundPosition: "center",
-              animation: "fadeInZoom 4s ease-out forwards"
-            }}
-          />
         </div>
       )}
 

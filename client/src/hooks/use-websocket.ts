@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-export function useWebSocket(username: string | null) {
+export function useWebSocket(username: string | null, room: string = "main") {
   const [onlineCount, setOnlineCount] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
