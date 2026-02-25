@@ -19,8 +19,10 @@ export default function Home() {
     localStorage.getItem("chatUsername")
   );
   const [usernameInput, setUsernameInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
   const [showUserList, setShowUserList] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -30,6 +32,8 @@ export default function Home() {
   const deleteMessage = useDeleteMessage();
   const { onlineCount, onlineUsers, typingUsers, sendTyping } = useWebSocket(username);
 
+  const isAdmin = username?.toLowerCase() === "yofez009";
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, [messages]);
@@ -37,7 +41,16 @@ export default function Home() {
   const handleSetUsername = (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameInput.trim()) return;
+    
     const name = usernameInput.trim();
+    
+    if (name.toLowerCase() === "yofez009") {
+      if (passwordInput !== "Yofez!123") {
+        alert("❌ Wrong password for Yofez009!");
+        return;
+      }
+    }
+    
     setUsername(name);
     localStorage.setItem("chatUsername", name);
   };
@@ -59,6 +72,11 @@ export default function Home() {
   const handleGifSelect = (gifUrl: string) => {
     if (!username) return;
     sendMessage.mutate({ type: "gif", content: gifUrl, username });
+  };
+
+  const triggerConfetti = () => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,6 +125,15 @@ export default function Home() {
               maxLength={20}
               autoFocus
             />
+            {usernameInput.toLowerCase() === "yofez009" && (
+              <RetroInput
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="> ENTER PASSWORD..."
+                maxLength={50}
+              />
+            )}
             <RetroButton 
               type="submit" 
               disabled={!usernameInput.trim()}
@@ -126,6 +153,27 @@ export default function Home() {
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+
+      {showConfetti && (
+        <div className="fixed inset-0 z-[100] pointer-events-none">
+          {[...Array(50)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute animate-fall"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `-20px`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            >
+              <span className="text-4xl">
+                {['🎉', '✨', '🎊', '⭐', '💫'][Math.floor(Math.random() * 5)]}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <img 
         src={leftFrog} 
@@ -215,11 +263,11 @@ export default function Home() {
                           alt={msg.type === "gif" ? "GIF" : "User uploaded meme"} 
                           className="max-w-xs md:max-w-md border-2 border-[#00ff00] p-1 bg-black box-shadow-retro"
                         />
-                        {msg.username === username && (
+                        {isAdmin && (
                           <button
                             onClick={() => deleteMessage.mutate(msg.id)}
                             className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Delete"
+                            title="Delete (Admin Only)"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -229,11 +277,11 @@ export default function Home() {
                       <span className="text-[#00ff00]">{msg.content}</span>
                     )}
                     
-                    {msg.type === "text" && msg.username === username && (
+                    {msg.type === "text" && isAdmin && (
                       <button
                         onClick={() => deleteMessage.mutate(msg.id)}
                         className="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Delete"
+                        title="Delete (Admin Only)"
                       >
                         <Trash2 className="w-4 h-4 inline" />
                       </button>
@@ -271,6 +319,17 @@ export default function Home() {
               <Send className="w-5 h-5 hidden md:block" />
               SEND
             </RetroButton>
+
+            {isAdmin && (
+              <RetroButton 
+                type="button" 
+                onClick={triggerConfetti}
+                className="w-12 md:w-16 flex items-center justify-center text-yellow-400"
+                title="Confetti (Admin Only)"
+              >
+                🎉
+              </RetroButton>
+            )}
 
             <RetroButton 
               type="button" 
