@@ -68,7 +68,7 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>(
-    localStorage.getItem('skipIntro') ? 'done' : 'warning'
+    'warning'
   );
   const [showWelcome, setShowWelcome] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -277,14 +277,24 @@ export default function Home() {
   };
 
   const handleWarningEnd = () => {
+    console.log('Warning video ended');
     setIntroStage('zoom');
     setTimeout(() => {
+      console.log('Starting fade in');
       setIntroStage('done');
       setShowWelcome(true);
-      localStorage.setItem('skipIntro', 'true');
       setTimeout(() => setShowWelcome(false), 5000);
     }, 3000);
   };
+
+  useEffect(() => {
+    if (introStage === 'warning' && warningVideoRef.current) {
+      warningVideoRef.current.play().catch(err => {
+        console.error('Video play error:', err);
+        handleWarningEnd();
+      });
+    }
+  }, [introStage]);
 
   if (!username) {
     return (
@@ -295,16 +305,21 @@ export default function Home() {
         <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
         
         {introStage === 'warning' && (
-          <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
+          <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center" onClick={handleWarningEnd}>
             <video
               ref={warningVideoRef}
               src="/WARNING.mp4"
               className="w-full h-full object-cover"
-              autoPlay
               playsInline
               onEnded={handleWarningEnd}
-              onClick={handleWarningEnd}
+              onError={(e) => {
+                console.error('Video error:', e);
+                handleWarningEnd();
+              }}
             />
+            <div className="absolute bottom-4 text-[#00ff00] text-xl animate-pulse">
+              CLICK TO SKIP
+            </div>
           </div>
         )}
 
@@ -371,16 +386,21 @@ export default function Home() {
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
       {introStage === 'warning' && (
-        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
+        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center" onClick={handleWarningEnd}>
           <video
             ref={warningVideoRef}
             src="/WARNING.mp4"
             className="w-full h-full object-cover"
-            autoPlay
             playsInline
             onEnded={handleWarningEnd}
-            onClick={handleWarningEnd}
+            onError={(e) => {
+              console.error('Video error:', e);
+              handleWarningEnd();
+            }}
           />
+          <div className="absolute bottom-4 text-[#00ff00] text-xl animate-pulse">
+            CLICK TO SKIP
+          </div>
         </div>
       )}
 
