@@ -182,10 +182,15 @@ export async function registerRoutes(
       
       // Convert Tenor format to match Giphy format
       const converted = {
-        data: (data.results || []).map((gif: any) => ({
+        data: (data.results || []).map((gif: any, index: number) => ({
+          id: gif.id || index,
+          title: gif.content_description || "",
           images: {
             fixed_height: {
-              url: gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url || ""
+              url: gif.media_formats?.gif?.url || ""
+            },
+            fixed_height_small: {
+              url: gif.media_formats?.tinygif?.url || gif.media_formats?.gif?.url || ""
             }
           }
         }))
