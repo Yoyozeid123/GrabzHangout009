@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
@@ -275,6 +275,10 @@ export default function Home() {
     setShowProfile(false);
   };
 
+  const handleDownloadHistory = () => {
+    window.location.href = '/api/messages/export';
+  };
+
   const handleWarningEnd = () => {
     console.log('Warning video ended');
     setIntroStage('zoom');
@@ -537,6 +541,13 @@ export default function Home() {
                 className="md:hidden text-[#00ff00] hover:text-[#ff6f61]"
               >
                 <Users className="w-6 h-6" />
+              </button>
+              <button 
+                onClick={handleDownloadHistory}
+                className="text-[#00ff00] hover:text-[#ff6f61]"
+                title="Download Chat History"
+              >
+                <Download className="w-6 h-6" />
               </button>
               <button 
                 onClick={() => setShowProfile(true)}

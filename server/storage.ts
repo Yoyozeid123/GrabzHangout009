@@ -1,11 +1,12 @@
 import { db } from "./db";
 import { messages, users, type InsertMessage, type Message, type User } from "@shared/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, lt, sql } from "drizzle-orm";
 
 export interface IStorage {
   getMessages(): Promise<Message[]>;
   createMessage(msg: InsertMessage): Promise<Message>;
   deleteMessage(id: number): Promise<void>;
+  deleteOldMessages(): Promise<number>;
   getUser(username: string): Promise<User | undefined>;
   upsertUser(username: string, pfp?: string): Promise<User>;
 }
@@ -24,6 +25,12 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMessage(id: number): Promise<void> {
     await db.delete(messages).where(eq(messages.id, id));
+  }
+
+  async deleteOldMessages(): Promise<number> {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const result = await db.delete(messages).where(lt(messages.createdAt, oneDayAgo));
+    return result.rowCount || 0;
   }
 
   async getUser(username: string): Promise<User | undefined> {

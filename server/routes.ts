@@ -197,5 +197,24 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/messages/export", async (req, res) => {
+    const msgs = await storage.getMessages();
+    const text = msgs.map(m => 
+      `[${m.createdAt ? new Date(m.createdAt).toLocaleString() : 'N/A'}] ${m.username}: ${m.type === 'text' ? m.content : `[${m.type.toUpperCase()}] ${m.content}`}`
+    ).join('\n');
+    
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename="chat-history-${new Date().toISOString().split('T')[0]}.txt"`);
+    res.send(text);
+  });
+
+  // Auto-delete old messages every hour
+  setInterval(async () => {
+    const deleted = await storage.deleteOldMessages();
+    if (deleted > 0) {
+      console.log(`Auto-deleted ${deleted} messages older than 24 hours`);
+    }
+  }, 60 * 60 * 1000); // Run every hour
+
   return httpServer;
 }
