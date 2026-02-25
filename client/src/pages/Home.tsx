@@ -485,27 +485,6 @@ export default function Home() {
           </h1>
         </div>
       )}
-            onClick={(e) => {
-              const video = e.currentTarget;
-              if (video.paused) {
-                video.play().catch(err => {
-                  console.error('Video play error:', err);
-                  handleWarningEnd();
-                });
-              } else {
-                handleWarningEnd();
-              }
-            }}
-            onError={(e) => {
-              console.error('Video error:', e);
-              handleWarningEnd();
-            }}
-          />
-          <div className="absolute bottom-4 right-4 text-[#00ff00] text-xl bg-black/80 px-4 py-2 border-2 border-[#00ff00] animate-pulse pointer-events-none">
-            SKIP CUTSCENE →
-          </div>
-        </div>
-      )}
 
       {showWelcome && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] animate-fade-in-down">
