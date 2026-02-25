@@ -312,7 +312,7 @@ export default function Home() {
       setShowIntro(false);
       setShowWelcome(true);
       setTimeout(() => setShowWelcome(false), 5000);
-    }, 3000);
+    }, 4000); // 1s fade + 3s zoom = 4s total
   };
 
   useEffect(() => {
@@ -403,10 +403,8 @@ export default function Home() {
               handleWarningEnd();
             }}
           />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-[#00ff00] text-4xl animate-pulse bg-black/80 px-8 py-4 border-4 border-[#00ff00]">
-              CLICK TO START
-            </div>
+          <div className="absolute bottom-4 right-4 text-[#00ff00] text-xl bg-black/80 px-4 py-2 border-2 border-[#00ff00] animate-pulse pointer-events-none">
+            SKIP CUTSCENE →
           </div>
         </div>
       )}
@@ -419,7 +417,7 @@ export default function Home() {
               backgroundImage: `url(${bgGif})`, 
               backgroundSize: "cover", 
               backgroundPosition: "center",
-              animation: "zoomOut 3s ease-out forwards"
+              animation: "fadeInZoom 4s ease-out forwards"
             }}
           />
         </div>
