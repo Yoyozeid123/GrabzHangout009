@@ -75,6 +75,7 @@ export default function Home() {
   const [activeGame, setActiveGame] = useState<'snake' | null>(null);
   const [gameData, setGameData] = useState<any>(null);
   const [roomName, setRoomName] = useState<string>("");
+  const [roomOwner, setRoomOwner] = useState<string>("");
   const [roomInput, setRoomInput] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
   const [roomPasswords, setRoomPasswords] = useState<Record<string, string>>({});
@@ -112,6 +113,7 @@ export default function Home() {
   const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger, gameData: wsGameData } = useWebSocket(username, roomName);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
+  const isRoomOwner = username === roomOwner;
 
   useEffect(() => {
     if (wsGameData) {
@@ -202,7 +204,7 @@ export default function Home() {
     localStorage.setItem("chatUsername", name);
   };
 
-  const handleJoinRoom = async (room: string, password?: string) => {
+  const handleJoinRoom = async (room: string, password?: string, owner?: string) => {
     // Verify password
     const res = await fetch('/api/rooms/verify', {
       method: 'POST',
@@ -216,6 +218,7 @@ export default function Home() {
     }
     
     setRoomName(room);
+    setRoomOwner(owner || "");
     setShowRoomSelect(false);
   };
 
@@ -227,7 +230,7 @@ export default function Home() {
     const res = await fetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: room, password: roomPassword || undefined })
+      body: JSON.stringify({ name: room, password: roomPassword || undefined, owner: username })
     });
     
     if (!res.ok) {
@@ -236,6 +239,7 @@ export default function Home() {
     }
     
     setRoomName(room);
+    setRoomOwner(username || "");
     setShowRoomSelect(false);
     setShowCreateRoom(false);
   };
@@ -460,7 +464,7 @@ export default function Home() {
                       />
                     )}
                     <RetroButton 
-                      onClick={() => handleJoinRoom(room.name, roomPasswords[room.name])}
+                      onClick={() => handleJoinRoom(room.name, roomPasswords[room.name], room.owner)}
                       className="w-full"
                     >
                       JOIN {room.hasPassword ? '🔒' : ''}
@@ -812,11 +816,11 @@ export default function Home() {
               >
                 <Download className="w-5 h-5" />
               </button>
-              {isAdmin && (
+              {(isAdmin || isRoomOwner) && (
                 <button 
                   onClick={() => setShowGames(true)}
                   className="text-[#00ff00] hover:text-[#ff6f61]"
-                  title="Games (Admin)"
+                  title="Games"
                 >
                   <Gamepad2 className="w-5 h-5" />
                 </button>
@@ -945,23 +949,36 @@ export default function Home() {
               SEND
             </RetroButton>
 
+            {(isAdmin || isRoomOwner) && (
+              <RetroButton 
+                type="button" 
+                onClick={triggerConfetti}
+                className="w-12 md:w-16 flex items-center justify-center text-yellow-400"
+                title="Confetti"
+              >
+                🎉
+              </RetroButton>
+            )}
+
             {isAdmin && (
               <>
                 <RetroButton 
                   type="button" 
-                  onClick={triggerConfetti}
-                  className="w-12 md:w-16 flex items-center justify-center text-yellow-400"
-                  title="Confetti (Admin Only)"
+                  onClick={triggerJumpscare}
+                  className="w-12 md:w-16 flex items-center justify-center text-red-500"
+                  title="Jumpscare (Room)"
                 >
-                  🎉
+                  👻
                 </RetroButton>
                 <RetroButton 
                   type="button" 
-                  onClick={triggerJumpscare}
-                  className="w-12 md:w-16 flex items-center justify-center text-red-500"
-                  title="Jumpscare (Admin Only)"
+                  onClick={() => {
+                    fetch('/api/jumpscare-global', { method: 'POST' });
+                  }}
+                  className="w-12 md:w-16 flex items-center justify-center text-red-500 animate-pulse"
+                  title="Global Jumpscare (All Rooms)"
                 >
-                  👻
+                  💀
                 </RetroButton>
               </>
             )}

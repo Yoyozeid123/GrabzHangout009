@@ -22,10 +22,10 @@ const upload = storage_multer.single("file");
 const uploadVoice = storage_multer.single("voice");
 
 const onlineUsers = new Map<WebSocket, { username: string; room: string }>();
-const rooms = new Map<string, { password?: string; created: Date }>();
+const rooms = new Map<string, { password?: string; created: Date; owner: string }>();
 
 // Initialize main room
-rooms.set("main", { password: "Grabzfeetfeet", created: new Date() });
+rooms.set("main", { password: "Grabzfeetfeet", created: new Date(), owner: "Yofez009" });
 const typingUsers = new Set<string>();
 
 // Simple NSFW keyword filter (no AWS needed)
@@ -230,13 +230,14 @@ export async function registerRoutes(
     const roomList = Array.from(rooms.entries()).map(([name, data]) => ({
       name,
       hasPassword: !!data.password,
-      userCount: getUsersInRoom(name).length
+      userCount: getUsersInRoom(name).length,
+      owner: data.owner
     }));
     res.json(roomList);
   });
 
   app.post("/api/rooms", (req, res) => {
-    const { name, password } = req.body;
+    const { name, password, owner } = req.body;
     if (!name || typeof name !== "string") {
       return res.status(400).json({ message: "Room name required" });
     }
@@ -245,7 +246,7 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Room already exists" });
     }
     
-    rooms.set(name, { password, created: new Date() });
+    rooms.set(name, { password, created: new Date(), owner: owner || "unknown" });
     res.json({ success: true, name });
   });
 
@@ -288,6 +289,11 @@ export async function registerRoutes(
 
   app.post("/api/game-broadcast", (req, res) => {
     broadcast({ type: "game", data: req.body });
+    res.json({ success: true });
+  });
+
+  app.post("/api/jumpscare-global", (req, res) => {
+    broadcast({ type: "jumpscare" });
     res.json({ success: true });
   });
 
