@@ -680,15 +680,16 @@ export default function Home() {
               <button 
                 onClick={() => setShowUserList(!showUserList)}
                 className="md:hidden text-[#00ff00] hover:text-[#ff6f61]"
+                title="Users"
               >
-                <Users className="w-6 h-6" />
+                <span className="text-2xl">👥</span>
               </button>
               <button 
                 onClick={handleDownloadHistory}
                 className="text-[#00ff00] hover:text-[#ff6f61]"
                 title="Download Chat History"
               >
-                <Download className="w-6 h-6" />
+                <span className="text-2xl">💾</span>
               </button>
               {isAdmin && (
                 <button 
@@ -696,7 +697,7 @@ export default function Home() {
                   className="text-[#00ff00] hover:text-[#ff6f61]"
                   title="Games (Admin)"
                 >
-                  <Gamepad2 className="w-6 h-6" />
+                  <span className="text-2xl">🎮</span>
                 </button>
               )}
               <button 
@@ -704,7 +705,7 @@ export default function Home() {
                 className="text-[#00ff00] hover:text-[#ff6f61]"
                 title="Profile Settings"
               >
-                <Settings className="w-6 h-6" />
+                <span className="text-2xl">⚙️</span>
               </button>
             </div>
           </header>
@@ -819,7 +820,7 @@ export default function Home() {
               disabled={!text.trim() || sendMessage.isPending}
               className="w-20 md:w-24 flex items-center justify-center gap-2"
             >
-              <Send className="w-5 h-5 hidden md:block" />
+              <span className="text-xl hidden md:block">📤</span>
               SEND
             </RetroButton>
 
