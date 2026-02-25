@@ -16,9 +16,11 @@ export function ReactionGame({ username, isAdmin, onClose, broadcastGame, gameDa
 
   useEffect(() => {
     if (gameData?.type === 'reaction') {
-      if (gameData.status === 'go') {
+      if (gameData.status === 'ready') {
+        setStatus('ready');
+      } else if (gameData.status === 'go') {
         setStatus('go');
-        setStartTime(Date.now());
+        setStartTime(gameData.startTime || Date.now());
       } else if (gameData.status === 'results') {
         setStatus('done');
       }
@@ -27,11 +29,13 @@ export function ReactionGame({ username, isAdmin, onClose, broadcastGame, gameDa
 
   const startGame = () => {
     setStatus('ready');
+    broadcastGame({ type: 'reaction', status: 'ready' });
     const delay = 2000 + Math.random() * 3000;
     setTimeout(() => {
       setStatus('go');
-      setStartTime(Date.now());
-      broadcastGame({ type: 'reaction', status: 'go' });
+      const now = Date.now();
+      setStartTime(now);
+      broadcastGame({ type: 'reaction', status: 'go', startTime: now });
     }, delay);
   };
 

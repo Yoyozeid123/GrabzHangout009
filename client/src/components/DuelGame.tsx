@@ -64,7 +64,7 @@ export function DuelGame({ username, isAdmin, onClose, broadcastGame, gameData, 
           <button onClick={onClose} className="text-[#ff6f61] text-2xl">✕</button>
         </div>
 
-        {status === 'setup' && isAdmin && (
+        {status === 'setup' && (
           <div>
             <p className="text-[#00ff00] text-xl mb-4">Select 2 players:</p>
             <div className="grid grid-cols-2 gap-4">

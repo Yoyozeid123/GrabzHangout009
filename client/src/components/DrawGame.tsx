@@ -18,7 +18,7 @@ export function DrawGame({ username, isAdmin, onClose, broadcastGame, gameData }
   useEffect(() => {
     if (gameData?.type === 'draw') {
       if (gameData.drawer) setDrawer(gameData.drawer);
-      if (gameData.word && gameData.drawer === username) setWord(gameData.word);
+      if (gameData.word) setWord(gameData.word); // Show word to everyone
       if (gameData.drawing && canvasRef.current) {
         const ctx = canvasRef.current.getContext('2d');
         const img = new Image();
@@ -95,7 +95,7 @@ export function DrawGame({ username, isAdmin, onClose, broadcastGame, gameData }
           <button onClick={onClose} className="text-[#ff6f61] text-2xl">✕</button>
         </div>
 
-        {!drawer && isAdmin && (
+        {!drawer && (
           <div className="text-center mb-4">
             <RetroButton onClick={startGame}>START DRAWING</RetroButton>
           </div>
