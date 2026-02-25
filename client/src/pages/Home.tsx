@@ -68,7 +68,7 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [showIntro, setShowIntro] = useState(!localStorage.getItem('seenIntro'));
-  const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>('warning');
+  const [introStage, setIntroStage] = useState<'start' | 'warning' | 'zoom' | 'done'>('start');
   const [showWelcome, setShowWelcome] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -279,6 +279,18 @@ export default function Home() {
     window.location.href = '/api/messages/export';
   };
 
+  const startIntro = () => {
+    setIntroStage('warning');
+    setTimeout(() => {
+      if (warningVideoRef.current) {
+        warningVideoRef.current.play().catch(err => {
+          console.error('Video play error:', err);
+          handleWarningEnd();
+        });
+      }
+    }, 100);
+  };
+
   const handleWarningEnd = () => {
     console.log('Warning video ended');
     setIntroStage('zoom');
@@ -357,6 +369,19 @@ export default function Home() {
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+
+      {showIntro && introStage === 'start' && (
+        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center" onClick={startIntro}>
+          <div className="text-center">
+            <div className="text-[#00ff00] text-6xl mb-8 animate-pulse">⚠️</div>
+            <h1 className="text-4xl text-[#00ff00] text-shadow-neon mb-4">WARNING</h1>
+            <p className="text-2xl text-[#ff6f61] mb-8">CLICK TO ENTER</p>
+            <div className="text-[#00ff00] text-xl opacity-70">
+              (Sound recommended)
+            </div>
+          </div>
+        </div>
+      )}
 
       {showIntro && introStage === 'warning' && (
         <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center" onClick={handleWarningEnd}>
