@@ -6,6 +6,9 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
 import { RetroInput } from "@/components/RetroInput";
 import { GifPicker } from "@/components/GifPicker";
+import { ReactionGame } from "@/components/ReactionGame";
+import { DrawGame } from "@/components/DrawGame";
+import { DuelGame } from "@/components/DuelGame";
 
 // Static Assets mapped via Vite aliases
 import bgGif from "@assets/BG_1771938204124.gif";
@@ -72,6 +75,7 @@ export default function Home() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showGames, setShowGames] = useState(false);
   const [activeGame, setActiveGame] = useState<'reaction' | 'draw' | 'duel' | null>(null);
+  const [gameData, setGameData] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
@@ -100,9 +104,24 @@ export default function Home() {
   const sendMessage = useSendMessage();
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
-  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger } = useWebSocket(username);
+  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger, gameData: wsGameData } = useWebSocket(username);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
+
+  useEffect(() => {
+    if (wsGameData) {
+      setGameData(wsGameData);
+    }
+  }, [wsGameData]);
+
+  const broadcastGame = (data: any) => {
+    // Send game data through WebSocket
+    fetch('/api/game-broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  };
 
   useEffect(() => {
     if (confettiTrigger > 0) {
@@ -585,6 +604,37 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeGame === 'reaction' && (
+        <ReactionGame 
+          username={username!}
+          isAdmin={isAdmin}
+          onClose={() => setActiveGame(null)}
+          broadcastGame={broadcastGame}
+          gameData={gameData}
+        />
+      )}
+
+      {activeGame === 'draw' && (
+        <DrawGame 
+          username={username!}
+          isAdmin={isAdmin}
+          onClose={() => setActiveGame(null)}
+          broadcastGame={broadcastGame}
+          gameData={gameData}
+        />
+      )}
+
+      {activeGame === 'duel' && (
+        <DuelGame 
+          username={username!}
+          isAdmin={isAdmin}
+          onClose={() => setActiveGame(null)}
+          broadcastGame={broadcastGame}
+          gameData={gameData}
+          onlineUsers={onlineUsers}
+        />
       )}
 
       <div className="w-full max-w-6xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-4 md:p-8 z-20">

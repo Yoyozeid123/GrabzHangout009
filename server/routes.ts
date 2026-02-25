@@ -70,6 +70,8 @@ export async function registerRoutes(
           broadcast({ type: "confetti" });
         } else if (msg.type === "jumpscare") {
           broadcast({ type: "jumpscare" });
+        } else if (msg.type === "game") {
+          broadcast({ type: "game", data: msg.data });
         }
       } catch (e) {
         console.error("WebSocket message error:", e);
@@ -206,6 +208,11 @@ export async function registerRoutes(
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Content-Disposition', `attachment; filename="chat-history-${new Date().toISOString().split('T')[0]}.txt"`);
     res.send(text);
+  });
+
+  app.post("/api/game-broadcast", (req, res) => {
+    broadcast({ type: "game", data: req.body });
+    res.json({ success: true });
   });
 
   // Auto-delete old messages every hour

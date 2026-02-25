@@ -7,6 +7,7 @@ export function useWebSocket(username: string | null) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [jumpscareTrigger, setJumpscareTrigger] = useState(0);
+  const [gameData, setGameData] = useState<any>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -39,6 +40,8 @@ export function useWebSocket(username: string | null) {
           setJumpscareTrigger(prev => prev + 1);
         } else if (data.type === "deleteMessage") {
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+        } else if (data.type === "game") {
+          setGameData(data.data);
         }
       } catch (e) {
         console.error("WebSocket message error:", e);
@@ -78,5 +81,5 @@ export function useWebSocket(username: string | null) {
     }
   }, []);
 
-  return { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger };
+  return { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger, gameData };
 }
