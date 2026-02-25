@@ -69,6 +69,13 @@ export function DrawGame({ username, isAdmin, onClose, broadcastGame, gameData }
     } else {
       ctx.lineTo(x, y);
       ctx.stroke();
+      // Broadcast while drawing
+      broadcastGame({ 
+        type: 'draw', 
+        drawing: canvas.toDataURL(),
+        drawer: username,
+        word
+      });
     }
   };
 

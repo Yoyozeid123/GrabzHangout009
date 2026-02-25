@@ -68,7 +68,7 @@ export function DuelGame({ username, isAdmin, onClose, broadcastGame, gameData, 
           <div>
             <p className="text-[#00ff00] text-xl mb-4">Select 2 players:</p>
             <div className="grid grid-cols-2 gap-4">
-              {onlineUsers.filter(u => u !== username).slice(0, 10).map(user => (
+              {onlineUsers.slice(0, 10).map(user => (
                 <RetroButton
                   key={user}
                   onClick={() => {
