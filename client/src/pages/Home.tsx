@@ -397,7 +397,7 @@ export default function Home() {
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
       {showIntro && introStage === 'warning' && (
-        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
+        <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
           <video
             ref={warningVideoRef}
             src="/WARNING.mp4"
@@ -427,7 +427,7 @@ export default function Home() {
       )}
 
       {showIntro && introStage === 'zoom' && (
-        <div className="fixed inset-0 z-[300] bg-black overflow-hidden">
+        <div className="fixed inset-0 z-[300] bg-black overflow-hidden" style={{ pointerEvents: 'none' }}>
           <div 
             className="w-full h-full"
             style={{ 
