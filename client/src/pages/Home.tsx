@@ -32,9 +32,17 @@ export default function Home() {
   const sendMessage = useSendMessage();
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
-  const { onlineCount, onlineUsers, typingUsers, sendTyping } = useWebSocket(username);
+  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, showConfetti: wsConfetti, showJumpscare: wsJumpscare } = useWebSocket(username);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
+
+  useEffect(() => {
+    if (wsConfetti) setShowConfetti(true);
+  }, [wsConfetti]);
+
+  useEffect(() => {
+    if (wsJumpscare) setShowJumpscare(true);
+  }, [wsJumpscare]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
@@ -77,11 +85,13 @@ export default function Home() {
   };
 
   const triggerConfetti = () => {
+    broadcastConfetti();
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
   };
 
   const triggerJumpscare = () => {
+    broadcastJumpscare();
     setShowJumpscare(true);
     if (jumpscareVideoRef.current) {
       jumpscareVideoRef.current.currentTime = 0;

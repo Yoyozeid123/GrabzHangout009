@@ -61,6 +61,10 @@ export async function registerRoutes(
         } else if (msg.type === "stopTyping" && msg.username) {
           typingUsers.delete(msg.username);
           broadcast({ type: "typing", users: Array.from(typingUsers) });
+        } else if (msg.type === "confetti") {
+          broadcast({ type: "confetti" });
+        } else if (msg.type === "jumpscare") {
+          broadcast({ type: "jumpscare" });
         }
       } catch (e) {
         console.error("WebSocket message error:", e);

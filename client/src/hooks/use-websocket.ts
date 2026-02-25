@@ -5,6 +5,8 @@ export function useWebSocket(username: string | null) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showJumpscare, setShowJumpscare] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -30,6 +32,14 @@ export function useWebSocket(username: string | null) {
         } else if (data.type === "typing") {
           setTypingUsers(data.users.filter((u: string) => u !== username));
         } else if (data.type === "newMessage") {
+          queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+        } else if (data.type === "confetti") {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 3000);
+        } else if (data.type === "jumpscare") {
+          setShowJumpscare(true);
+          setTimeout(() => setShowJumpscare(false), 5000);
+        } else if (data.type === "deleteMessage") {
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
         }
       } catch (e) {
@@ -58,5 +68,17 @@ export function useWebSocket(username: string | null) {
     }
   }, [username]);
 
-  return { onlineCount, onlineUsers, typingUsers, sendTyping };
+  const broadcastConfetti = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "confetti" }));
+    }
+  }, []);
+
+  const broadcastJumpscare = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "jumpscare" }));
+    }
+  }, []);
+
+  return { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, showConfetti, showJumpscare };
 }
