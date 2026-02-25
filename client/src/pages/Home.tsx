@@ -76,6 +76,23 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const warningVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Clear old pfps on version change
+  useEffect(() => {
+    const currentVersion = "v1.0.0"; // Update this when you deploy
+    const savedVersion = localStorage.getItem("appVersion");
+    
+    if (savedVersion !== currentVersion) {
+      // Clear all pfp data
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("pfp_")) {
+          localStorage.removeItem(key);
+        }
+      });
+      localStorage.setItem("appVersion", currentVersion);
+      console.log("Cleared old profile pictures due to version update");
+    }
+  }, []);
   
   const { data: messages = [], isLoading } = useMessages();
   const sendMessage = useSendMessage();
