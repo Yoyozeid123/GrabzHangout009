@@ -81,5 +81,11 @@ export function useWebSocket(username: string | null, room: string = "main") {
     }
   }, []);
 
-  return { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger, gameData };
+  const broadcastGame = useCallback((data: any) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "game", data }));
+    }
+  }, []);
+
+  return { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, broadcastGame, confettiTrigger, jumpscareTrigger, gameData };
 }

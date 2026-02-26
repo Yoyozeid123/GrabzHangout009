@@ -27,15 +27,28 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   const [gameStarted, setGameStarted] = useState(false);
   const [isController, setIsController] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const directionRef = useRef("RIGHT");
+  const playersRef = useRef<Record<string, Player>>({});
+  const foodRef = useRef({ x: 10, y: 10 });
   const myDirectionRef = useRef("RIGHT");
+  const lastBroadcastRef = useRef(0);
 
   useEffect(() => {
     if (gameData?.type === 'snake') {
-      if (gameData.players) setPlayers(gameData.players);
-      if (gameData.food) setFood(gameData.food);
+      const newPlayers = gameData.players || {};
+      const newFood = gameData.food || food;
+      
+      setPlayers(newPlayers);
+      setFood(newFood);
+      playersRef.current = newPlayers;
+      foodRef.current = newFood;
+      
       if (gameData.started !== undefined) setGameStarted(gameData.started);
       if (gameData.controller) setIsController(gameData.controller === username);
+      
+      // Update my direction from server
+      if (newPlayers[username]) {
+        myDirectionRef.current = newPlayers[username].direction;
+      }
     }
   }, [gameData, username]);
 
@@ -43,40 +56,53 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key;
       const currentDir = myDirectionRef.current;
+      let newDir = currentDir;
       
-      if (key === "ArrowUp" && currentDir !== "DOWN") myDirectionRef.current = "UP";
-      else if (key === "ArrowDown" && currentDir !== "UP") myDirectionRef.current = "DOWN";
-      else if (key === "ArrowLeft" && currentDir !== "RIGHT") myDirectionRef.current = "LEFT";
-      else if (key === "ArrowRight" && currentDir !== "LEFT") myDirectionRef.current = "RIGHT";
+      if (key === "ArrowUp" && currentDir !== "DOWN") newDir = "UP";
+      else if (key === "ArrowDown" && currentDir !== "UP") newDir = "DOWN";
+      else if (key === "ArrowLeft" && currentDir !== "RIGHT") newDir = "LEFT";
+      else if (key === "ArrowRight" && currentDir !== "LEFT") newDir = "RIGHT";
       
-      // Broadcast direction change
-      if (players[username]) {
-        const updatedPlayers = { ...players };
-        updatedPlayers[username] = { ...players[username], direction: myDirectionRef.current };
-        broadcastGame({
-          type: 'snake',
-          players: updatedPlayers,
-          food,
-          started: gameStarted,
-          controller: isController ? username : undefined
-        });
+      if (newDir !== currentDir) {
+        myDirectionRef.current = newDir;
+        
+        // Update local player direction
+        const currentPlayers = playersRef.current;
+        if (currentPlayers[username]) {
+          const updatedPlayers = { ...currentPlayers };
+          updatedPlayers[username] = { ...currentPlayers[username], direction: newDir };
+          playersRef.current = updatedPlayers;
+          
+          // Throttle broadcasts to max once per 50ms
+          const now = Date.now();
+          if (now - lastBroadcastRef.current > 50) {
+            lastBroadcastRef.current = now;
+            broadcastGame({
+              type: 'snake',
+              players: updatedPlayers,
+              food: foodRef.current,
+              started: gameStarted,
+              controller: isController ? username : undefined
+            });
+          }
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [players, username, food, gameStarted, isController, broadcastGame]);
+  }, [username, gameStarted, isController, broadcastGame]);
 
   useEffect(() => {
     if (!gameStarted || !isController) return;
 
     const interval = setInterval(() => {
-      const updatedPlayers = { ...players };
-      let newFood = { ...food };
+      const currentPlayers = { ...playersRef.current };
+      let newFood = { ...foodRef.current };
       let foodEaten = false;
 
       // Move all players
-      Object.entries(players).forEach(([name, player]) => {
+      Object.entries(currentPlayers).forEach(([name, player]) => {
         if (!player.alive) return;
 
         const head = player.snake[0];
@@ -92,42 +118,45 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
 
         // Check wall collision
         if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
-          updatedPlayers[name] = { ...player, alive: false };
+          currentPlayers[name] = { ...player, alive: false };
           return;
         }
 
         // Check self collision
         if (player.snake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
-          updatedPlayers[name] = { ...player, alive: false };
+          currentPlayers[name] = { ...player, alive: false };
           return;
         }
 
         const newSnake = [newHead, ...player.snake];
         
         // Check food
-        if (newHead.x === food.x && newHead.y === food.y) {
+        if (newHead.x === newFood.x && newHead.y === newFood.y) {
           newFood = {
             x: Math.floor(Math.random() * GRID_SIZE),
             y: Math.floor(Math.random() * GRID_SIZE)
           };
           foodEaten = true;
-          updatedPlayers[name] = {
+          currentPlayers[name] = {
             ...player,
             snake: newSnake,
             score: player.score + 1
           };
         } else {
           newSnake.pop();
-          updatedPlayers[name] = {
+          currentPlayers[name] = {
             ...player,
             snake: newSnake
           };
         }
       });
 
+      playersRef.current = currentPlayers;
+      foodRef.current = newFood;
+      
       broadcastGame({
         type: 'snake',
-        players: updatedPlayers,
+        players: currentPlayers,
         food: newFood,
         started: true,
         controller: username
@@ -135,7 +164,7 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
     }, 150);
 
     return () => clearInterval(interval);
-  }, [gameStarted, isController, players, food, username, broadcastGame]);
+  }, [gameStarted, isController, username, broadcastGame]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -196,7 +225,7 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   };
 
   const joinGame = () => {
-    const newPlayers = { ...players };
+    const newPlayers = { ...playersRef.current };
     newPlayers[username] = {
       username,
       snake: [{ x: Math.floor(Math.random() * GRID_SIZE), y: Math.floor(Math.random() * GRID_SIZE) }],
@@ -204,11 +233,13 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       alive: true,
       score: 0
     };
+    
+    playersRef.current = newPlayers;
 
     broadcastGame({
       type: 'snake',
       players: newPlayers,
-      food,
+      food: foodRef.current,
       started: gameStarted,
       controller: isController ? username : undefined
     });

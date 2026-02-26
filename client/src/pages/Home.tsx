@@ -110,7 +110,7 @@ export default function Home() {
   const sendMessage = useSendMessage();
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
-  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, confettiTrigger, jumpscareTrigger, gameData: wsGameData } = useWebSocket(username, roomName);
+  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, broadcastGame, confettiTrigger, jumpscareTrigger, gameData: wsGameData } = useWebSocket(username, roomName);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
   const isRoomOwner = username === roomOwner;
@@ -124,15 +124,6 @@ export default function Home() {
       }
     }
   }, [wsGameData]);
-
-  const broadcastGame = (data: any) => {
-    // Send game data through WebSocket
-    fetch('/api/game-broadcast', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-  };
 
   useEffect(() => {
     if (confettiTrigger > 0) {
