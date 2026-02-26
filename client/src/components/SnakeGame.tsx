@@ -36,9 +36,8 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   useEffect(() => {
     if (!gameData) return;
     
-    // Handle direction changes
+    // Handle direction changes - ONLY update refs, not display state
     if (gameData.type === 'snake-direction') {
-      console.log('[SnakeGame] Received direction change:', gameData.username, gameData.direction);
       const currentPlayers = { ...playersRef.current };
       if (currentPlayers[gameData.username]) {
         currentPlayers[gameData.username] = {
@@ -46,35 +45,29 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
           direction: gameData.direction
         };
         playersRef.current = currentPlayers;
-        
-        // Update my own direction ref if it's me
-        if (gameData.username === username) {
-          myDirectionRef.current = gameData.direction;
-        }
+      }
+      
+      // Update my own direction ref
+      if (gameData.username === username) {
+        myDirectionRef.current = gameData.direction;
       }
       return;
     }
     
-    // Handle full game state
+    // Handle full game state - update everything
     if (gameData.type === 'snake') {
-      console.log('[SnakeGame] Received game data:', { 
-        controller: gameData.controller, 
-        isMe: gameData.controller === username,
-        playerCount: Object.keys(gameData.players || {}).length 
-      });
-      
       const newPlayers = gameData.players || {};
       const newFood = gameData.food || food;
       
-      // Always update display state
+      // Update display state
       setPlayers(newPlayers);
       setFood(newFood);
       
-      // Update refs with latest data
+      // Update refs
       playersRef.current = newPlayers;
       foodRef.current = newFood;
       
-      // Keep my own direction ref in sync
+      // Sync my direction
       if (newPlayers[username]) {
         myDirectionRef.current = newPlayers[username].direction;
       }
@@ -97,27 +90,19 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       
       if (newDir !== currentDir) {
         myDirectionRef.current = newDir;
-        console.log('[SnakeGame] Direction changed:', newDir, 'isController:', isController);
         
-        // Update local direction
-        const currentPlayers = { ...playersRef.current };
-        if (currentPlayers[username]) {
-          currentPlayers[username] = { ...currentPlayers[username], direction: newDir };
-          playersRef.current = currentPlayers;
-          
-          // Broadcast direction change (not full game state)
-          broadcastGame({
-            type: 'snake-direction',
-            username,
-            direction: newDir
-          });
-        }
+        // Broadcast direction change immediately
+        broadcastGame({
+          type: 'snake-direction',
+          username,
+          direction: newDir
+        });
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [username, isController, broadcastGame]);
+  }, [username, broadcastGame]);
 
   useEffect(() => {
     if (!gameStarted || !isController) {
@@ -127,13 +112,10 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       }
       return;
     }
-    
-    console.log('[SnakeGame] Starting game loop as controller');
 
     gameLoopRef.current = setInterval(() => {
       const currentPlayers = { ...playersRef.current };
       let newFood = { ...foodRef.current };
-      let foodEaten = false;
 
       // Move all players
       Object.entries(currentPlayers).forEach(([name, player]) => {
@@ -170,7 +152,6 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
             x: Math.floor(Math.random() * GRID_SIZE),
             y: Math.floor(Math.random() * GRID_SIZE)
           };
-          foodEaten = true;
           currentPlayers[name] = {
             ...player,
             snake: newSnake,
@@ -185,9 +166,11 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
         }
       });
 
+      // Update refs first
       playersRef.current = currentPlayers;
       foodRef.current = newFood;
       
+      // Then broadcast
       broadcastGame({
         type: 'snake',
         players: currentPlayers,
