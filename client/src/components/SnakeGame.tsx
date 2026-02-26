@@ -31,24 +31,56 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   const foodRef = useRef({ x: 10, y: 10 });
   const myDirectionRef = useRef("RIGHT");
   const lastBroadcastRef = useRef(0);
+  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (gameData?.type === 'snake') {
+    if (!gameData) return;
+    
+    // Handle direction changes
+    if (gameData.type === 'snake-direction') {
+      console.log('[SnakeGame] Received direction change:', gameData.username, gameData.direction);
+      const currentPlayers = { ...playersRef.current };
+      if (currentPlayers[gameData.username]) {
+        currentPlayers[gameData.username] = {
+          ...currentPlayers[gameData.username],
+          direction: gameData.direction
+        };
+        playersRef.current = currentPlayers;
+        
+        // Update my own direction ref if it's me
+        if (gameData.username === username) {
+          myDirectionRef.current = gameData.direction;
+        }
+      }
+      return;
+    }
+    
+    // Handle full game state
+    if (gameData.type === 'snake') {
+      console.log('[SnakeGame] Received game data:', { 
+        controller: gameData.controller, 
+        isMe: gameData.controller === username,
+        playerCount: Object.keys(gameData.players || {}).length 
+      });
+      
       const newPlayers = gameData.players || {};
       const newFood = gameData.food || food;
       
+      // Always update display state
       setPlayers(newPlayers);
       setFood(newFood);
+      
+      // Update refs with latest data
       playersRef.current = newPlayers;
       foodRef.current = newFood;
       
-      if (gameData.started !== undefined) setGameStarted(gameData.started);
-      if (gameData.controller) setIsController(gameData.controller === username);
-      
-      // Update my direction from server
+      // Keep my own direction ref in sync
       if (newPlayers[username]) {
         myDirectionRef.current = newPlayers[username].direction;
       }
+      
+      if (gameData.started !== undefined) setGameStarted(gameData.started);
+      if (gameData.controller) setIsController(gameData.controller === username);
     }
   }, [gameData, username]);
 
@@ -65,38 +97,40 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       
       if (newDir !== currentDir) {
         myDirectionRef.current = newDir;
+        console.log('[SnakeGame] Direction changed:', newDir, 'isController:', isController);
         
-        // Update local player direction
-        const currentPlayers = playersRef.current;
+        // Update local direction
+        const currentPlayers = { ...playersRef.current };
         if (currentPlayers[username]) {
-          const updatedPlayers = { ...currentPlayers };
-          updatedPlayers[username] = { ...currentPlayers[username], direction: newDir };
-          playersRef.current = updatedPlayers;
+          currentPlayers[username] = { ...currentPlayers[username], direction: newDir };
+          playersRef.current = currentPlayers;
           
-          // Throttle broadcasts to max once per 50ms
-          const now = Date.now();
-          if (now - lastBroadcastRef.current > 50) {
-            lastBroadcastRef.current = now;
-            broadcastGame({
-              type: 'snake',
-              players: updatedPlayers,
-              food: foodRef.current,
-              started: gameStarted,
-              controller: isController ? username : undefined
-            });
-          }
+          // Broadcast direction change (not full game state)
+          broadcastGame({
+            type: 'snake-direction',
+            username,
+            direction: newDir
+          });
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [username, gameStarted, isController, broadcastGame]);
+  }, [username, isController, broadcastGame]);
 
   useEffect(() => {
-    if (!gameStarted || !isController) return;
+    if (!gameStarted || !isController) {
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+      return;
+    }
+    
+    console.log('[SnakeGame] Starting game loop as controller');
 
-    const interval = setInterval(() => {
+    gameLoopRef.current = setInterval(() => {
       const currentPlayers = { ...playersRef.current };
       let newFood = { ...foodRef.current };
       let foodEaten = false;
@@ -163,7 +197,12 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       });
     }, 150);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+    };
   }, [gameStarted, isController, username, broadcastGame]);
 
   useEffect(() => {
