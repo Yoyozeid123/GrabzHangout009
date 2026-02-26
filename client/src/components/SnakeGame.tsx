@@ -36,7 +36,7 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   useEffect(() => {
     if (!gameData) return;
     
-    // Handle direction changes - ONLY update refs, not display state
+    // Handle direction changes - update refs only
     if (gameData.type === 'snake-direction') {
       const currentPlayers = { ...playersRef.current };
       if (currentPlayers[gameData.username]) {
@@ -54,30 +54,33 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       return;
     }
     
-    // Handle full game state - update everything
+    // Handle full game state
     if (gameData.type === 'snake') {
       const newPlayers = gameData.players || {};
       const newFood = gameData.food || food;
       
-      // Update display state
-      setPlayers(newPlayers);
-      setFood(newFood);
-      
-      // Update refs
-      playersRef.current = newPlayers;
-      foodRef.current = newFood;
-      
-      // Sync my direction
-      if (newPlayers[username]) {
-        myDirectionRef.current = newPlayers[username].direction;
+      // Non-controllers: accept all state from controller
+      // Controllers: ignore their own broadcasts to prevent feedback loop
+      if (gameData.controller !== username || !isController) {
+        setPlayers(newPlayers);
+        setFood(newFood);
+        playersRef.current = newPlayers;
+        foodRef.current = newFood;
+        
+        // Sync my direction
+        if (newPlayers[username]) {
+          myDirectionRef.current = newPlayers[username].direction;
+        }
       }
       
       if (gameData.started !== undefined) setGameStarted(gameData.started);
       if (gameData.controller) setIsController(gameData.controller === username);
     }
-  }, [gameData, username]);
+  }, [gameData, username, isController]);
 
   useEffect(() => {
+    if (!gameStarted || !players[username]) return;
+    
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key;
       const currentDir = myDirectionRef.current;
@@ -91,7 +94,14 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       if (newDir !== currentDir) {
         myDirectionRef.current = newDir;
         
-        // Broadcast direction change immediately
+        // Update direction in refs immediately
+        const currentPlayers = { ...playersRef.current };
+        if (currentPlayers[username]) {
+          currentPlayers[username] = { ...currentPlayers[username], direction: newDir };
+          playersRef.current = currentPlayers;
+        }
+        
+        // Broadcast direction change
         broadcastGame({
           type: 'snake-direction',
           username,
@@ -102,7 +112,7 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [username, broadcastGame]);
+  }, [username, gameStarted, players, broadcastGame]);
 
   useEffect(() => {
     if (!gameStarted || !isController) {
@@ -235,29 +245,46 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       alive: true,
       score: 0
     };
+    
+    const initialFood = { x: 15, y: 15 };
 
+    // Set local state immediately
+    setPlayers(initialPlayers);
+    setFood(initialFood);
+    setGameStarted(true);
+    setIsController(true);
+    playersRef.current = initialPlayers;
+    foodRef.current = initialFood;
+    myDirectionRef.current = "RIGHT";
+
+    // Broadcast to others
     broadcastGame({
       type: 'snake',
       players: initialPlayers,
-      food: { x: 15, y: 15 },
+      food: initialFood,
       started: true,
       controller: username
     });
-    setIsController(true);
   };
 
   const joinGame = () => {
     const newPlayers = { ...playersRef.current };
+    const spawnX = Math.floor(Math.random() * GRID_SIZE);
+    const spawnY = Math.floor(Math.random() * GRID_SIZE);
+    
     newPlayers[username] = {
       username,
-      snake: [{ x: Math.floor(Math.random() * GRID_SIZE), y: Math.floor(Math.random() * GRID_SIZE) }],
+      snake: [{ x: spawnX, y: spawnY }],
       direction: "RIGHT",
       alive: true,
       score: 0
     };
     
+    // Update local state
     playersRef.current = newPlayers;
+    myDirectionRef.current = "RIGHT";
 
+    // Broadcast to controller
     broadcastGame({
       type: 'snake',
       players: newPlayers,
