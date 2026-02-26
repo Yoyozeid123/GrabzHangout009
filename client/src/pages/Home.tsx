@@ -754,7 +754,7 @@ export default function Home() {
         />
       )}
 
-      <div className="w-full max-w-7xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-4 md:p-8 z-20">
+      <div className="w-full max-w-7xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-2 md:p-4 z-20">
         
         {/* User List Sidebar */}
         <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 border-[#00ff00] box-shadow-retro flex-shrink-0 md:max-h-[400px]`}>
@@ -774,7 +774,7 @@ export default function Home() {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="flex flex-col items-center justify-center mb-4 md:mb-8">
+          <header className="flex flex-col items-center justify-center mb-2 md:mb-4">
             <div className="flex items-center gap-4">
               <img 
                 src={leftFrog} 
@@ -827,32 +827,32 @@ export default function Home() {
             </div>
           </header>
 
-          <marquee className="text-[#00ff00] text-3xl border-y-2 border-dashed border-[#00ff00] py-2 mb-4 bg-black/80">
+          <marquee className="text-[#00ff00] text-xl border-y-2 border-dashed border-[#00ff00] py-1 mb-2 bg-black/80">
             *** ROOM: {roomName.toUpperCase()} *** WELCOME TO GRABZHANGOUT009 *** THE COOLEST CHATROOM ON THE WORLD WIDE WEB *** UPLOAD YOUR DANKEST MEMES *** NO LURKING ALLOWED ***
           </marquee>
 
-          <div className="flex-1 flex flex-col bg-black/85 border-4 border-[#00ff00] box-shadow-retro mb-4 min-h-0">
+          <div className="flex-1 flex flex-col bg-black/85 border-4 border-[#00ff00] box-shadow-retro mb-2 min-h-0">
             
-            <div className="bg-[#00ff00] text-black px-3 py-1 flex items-center gap-2 font-bold text-3xl">
-              <TerminalSquare className="w-7 h-7" />
+            <div className="bg-[#00ff00] text-black px-3 py-1 flex items-center gap-2 font-bold text-lg">
+              <TerminalSquare className="w-5 h-5" />
               <span>C:\CHAT\MAIN.EXE</span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 retro-scrollbar space-y-3">
               {isLoading ? (
-                <div className="text-[#00ff00] text-3xl animate-pulse">LOADING_DATA...</div>
+                <div className="text-[#00ff00] text-xl animate-pulse">LOADING_DATA...</div>
               ) : messages.length === 0 ? (
-                <div className="text-[#00ff00] opacity-50 text-3xl italic">
+                <div className="text-[#00ff00] opacity-50 text-xl italic">
                   {"> No messages yet. Be the first to post!"}
                 </div>
               ) : (
                 messages.map((msg, idx) => (
-                  <div key={msg.id || idx} className="text-3xl break-words group relative flex items-start gap-3">
+                  <div key={msg.id || idx} className="text-xl break-words group relative flex items-start gap-2">
                     {userPfps[msg.username] && (
                       <img 
                         src={userPfps[msg.username]} 
                         alt={msg.username}
-                        className="w-12 h-12 rounded-full border-2 border-[#00ff00] flex-shrink-0"
+                        className="w-8 h-8 rounded-full border-2 border-[#00ff00] flex-shrink-0"
                       />
                     )}
                     <div className="flex-1">
@@ -868,7 +868,7 @@ export default function Home() {
                           <img 
                             src={msg.content} 
                             alt={msg.type === "gif" ? "GIF" : "User uploaded meme"} 
-                            className="max-w-md md:max-w-lg border-2 border-[#00ff00] p-1 bg-black box-shadow-retro"
+                            className="max-w-xs md:max-w-md border-2 border-[#00ff00] p-1 bg-black box-shadow-retro"
                           />
                           {isAdmin && (
                             <button
@@ -882,7 +882,7 @@ export default function Home() {
                         </div>
                       ) : msg.type === "voice" ? (
                         <div className="mt-2 flex items-center gap-2">
-                          <audio src={msg.content} controls className="max-w-md" />
+                          <audio src={msg.content} controls className="max-w-xs" />
                           {isAdmin && (
                             <button
                               onClick={() => deleteMessage.mutate(msg.id)}
@@ -922,12 +922,12 @@ export default function Home() {
             </div>
           </div>
 
-          <form onSubmit={handleSendText} className="flex gap-2 md:gap-4 items-stretch h-16 md:h-20">
+          <form onSubmit={handleSendText} className="flex gap-2 md:gap-4 items-stretch h-14 md:h-16">
             <RetroInput
               value={text}
               onChange={handleTextChange}
               placeholder="> TYPE MESSAGE HERE..."
-              className="flex-1 text-2xl"
+              className="flex-1"
               disabled={sendMessage.isPending}
               autoFocus
             />
@@ -935,9 +935,9 @@ export default function Home() {
             <RetroButton 
               type="submit" 
               disabled={!text.trim() || sendMessage.isPending}
-              className="w-24 md:w-32 flex items-center justify-center gap-2 text-xl"
+              className="w-20 md:w-24 flex items-center justify-center gap-2"
             >
-              <Send className="w-6 h-6 hidden md:block" />
+              <Send className="w-5 h-5 hidden md:block" />
               SEND
             </RetroButton>
 
