@@ -92,9 +92,10 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   }, [gameData, username, isController]);
 
   useEffect(() => {
-    if (!gameStarted || !players[username]) return;
-    
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle if game is started and player exists
+      if (!gameStarted || !playersRef.current[username]) return;
+      
       const key = e.key;
       const currentDir = myDirectionRef.current;
       let newDir = currentDir;
@@ -125,7 +126,7 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [username, gameStarted, players, broadcastGame]);
+  }, [username, gameStarted, broadcastGame]);
 
   useEffect(() => {
     if (!gameStarted || !isController) {
