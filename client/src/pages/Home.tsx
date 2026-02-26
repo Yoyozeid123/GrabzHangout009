@@ -823,7 +823,14 @@ export default function Home() {
                         </div>
                       ) : msg.type === "voice" ? (
                         <div className="mt-2 flex items-center gap-2">
-                          <audio src={msg.content} controls className="max-w-xs" />
+                          <audio 
+                            src={msg.content} 
+                            controls 
+                            className="max-w-xs border-2 border-[#00ff00] bg-black p-2 box-shadow-retro"
+                            style={{
+                              filter: 'hue-rotate(90deg) saturate(2)',
+                            }}
+                          />
                           {isAdmin && (
                             <button
                               onClick={() => deleteMessage.mutate(msg.id)}
