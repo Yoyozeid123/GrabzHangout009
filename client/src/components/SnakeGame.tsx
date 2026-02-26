@@ -70,9 +70,11 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       const newPlayers = gameData.players || {};
       const newFood = gameData.food || food;
       
-      // Non-controllers: accept all state from controller
-      // Controllers: ignore their own broadcasts to prevent feedback loop
-      if (gameData.controller !== username || !isController) {
+      // Controller ignores its own broadcasts to prevent feedback loop
+      // Non-controllers accept all updates from controller
+      const isMyOwnBroadcast = gameData.controller === username && isController;
+      
+      if (!isMyOwnBroadcast) {
         setPlayers(newPlayers);
         setFood(newFood);
         playersRef.current = newPlayers;
