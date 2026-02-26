@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2 } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
 import { RetroInput } from "@/components/RetroInput";
 import { GifPicker } from "@/components/GifPicker";
-import { SnakeGame } from "@/components/SnakeGame";
 
 // Static Assets mapped via Vite aliases
 import bgGif from "@assets/BG_1771938204124.gif";
@@ -71,9 +70,6 @@ export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
   const [introStage, setIntroStage] = useState<'warning' | 'zoom' | 'done'>('warning');
   const [showWelcome, setShowWelcome] = useState(false);
-  const [showGames, setShowGames] = useState(false);
-  const [activeGame, setActiveGame] = useState<'snake' | null>(null);
-  const [gameData, setGameData] = useState<any>(null);
   const [roomName, setRoomName] = useState<string>("");
   const [roomOwner, setRoomOwner] = useState<string>("");
   const [roomInput, setRoomInput] = useState("");
@@ -114,16 +110,6 @@ export default function Home() {
 
   const isAdmin = username?.toLowerCase() === "yofez009";
   const isRoomOwner = username === roomOwner;
-
-  useEffect(() => {
-    if (wsGameData) {
-      setGameData(wsGameData);
-      // Auto-open game for all users when admin starts it
-      if (wsGameData.active && wsGameData.type) {
-        setActiveGame(wsGameData.type);
-      }
-    }
-  }, [wsGameData]);
 
   useEffect(() => {
     if (confettiTrigger > 0) {
@@ -718,42 +704,6 @@ export default function Home() {
         </div>
       )}
 
-      {showGames && (
-        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowGames(false)}>
-          <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl text-[#00ff00] text-shadow-neon">🎮 ARCADE GAMES</h2>
-              <button onClick={() => setShowGames(false)} className="text-[#ff6f61] text-2xl">✕</button>
-            </div>
-
-            <div className="flex justify-center">
-              <div className="bg-black border-2 border-[#00ff00] p-8 hover:border-[#ff6f61] cursor-pointer transition-colors max-w-md" onClick={() => { 
-                setActiveGame('snake'); 
-                setShowGames(false); 
-                broadcastGame({ type: 'snake', active: true });
-              }}>
-                <div className="text-8xl text-center mb-4">🐍</div>
-                <h3 className="text-2xl text-[#00ff00] text-center mb-4">MULTIPLAYER SNAKE</h3>
-                <p className="text-[#00ff00] text-lg opacity-70 text-center">
-                  Classic snake game! Compete with others in real-time. Eat food, grow longer, don't crash!
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeGame === 'snake' && (
-        <SnakeGame 
-          username={username!}
-          isAdmin={isAdmin}
-          isRoomOwner={isRoomOwner}
-          onClose={() => setActiveGame(null)}
-          broadcastGame={broadcastGame}
-          gameData={gameData}
-        />
-      )}
-
       <div className="w-full max-w-7xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-2 md:p-4 z-20">
         
         {/* User List Sidebar */}
@@ -808,15 +758,6 @@ export default function Home() {
               >
                 <Download className="w-5 h-5" />
               </button>
-              {(isAdmin || isRoomOwner) && (
-                <button 
-                  onClick={() => setShowGames(true)}
-                  className="text-[#00ff00] hover:text-[#ff6f61]"
-                  title="Games"
-                >
-                  <Gamepad2 className="w-5 h-5" />
-                </button>
-              )}
               <button 
                 onClick={() => setShowProfile(true)}
                 className="text-[#00ff00] hover:text-[#ff6f61]"
