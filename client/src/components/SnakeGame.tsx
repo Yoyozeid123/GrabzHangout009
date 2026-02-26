@@ -36,6 +36,17 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   useEffect(() => {
     if (!gameData) return;
     
+    // Handle player join
+    if (gameData.type === 'snake-join') {
+      const currentPlayers = { ...playersRef.current };
+      currentPlayers[gameData.username] = gameData.player;
+      playersRef.current = currentPlayers;
+      
+      // Update display for everyone
+      setPlayers(currentPlayers);
+      return;
+    }
+    
     // Handle direction changes - update refs only
     if (gameData.type === 'snake-direction') {
       const currentPlayers = { ...playersRef.current };
@@ -268,11 +279,10 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
   };
 
   const joinGame = () => {
-    const newPlayers = { ...playersRef.current };
     const spawnX = Math.floor(Math.random() * GRID_SIZE);
     const spawnY = Math.floor(Math.random() * GRID_SIZE);
     
-    newPlayers[username] = {
+    const newPlayer: Player = {
       username,
       snake: [{ x: spawnX, y: spawnY }],
       direction: "RIGHT",
@@ -280,17 +290,17 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
       score: 0
     };
     
-    // Update local state
-    playersRef.current = newPlayers;
+    // Update local refs
+    const currentPlayers = { ...playersRef.current };
+    currentPlayers[username] = newPlayer;
+    playersRef.current = currentPlayers;
     myDirectionRef.current = "RIGHT";
 
-    // Broadcast to controller
+    // Broadcast join event
     broadcastGame({
-      type: 'snake',
-      players: newPlayers,
-      food: foodRef.current,
-      started: gameStarted,
-      controller: isController ? username : undefined
+      type: 'snake-join',
+      username,
+      player: newPlayer
     });
   };
 
