@@ -324,6 +324,13 @@ export function SnakeGame({ username, isAdmin, isRoomOwner, onClose, broadcastGa
                 <RetroButton onClick={joinGame}>JOIN GAME</RetroButton>
               </div>
             )}
+            
+            {players[username] && !players[username].alive && (
+              <div className="text-center mt-4">
+                <p className="text-[#ff6f61] text-xl mb-2">💀 YOU DIED!</p>
+                <RetroButton onClick={joinGame}>RESPAWN</RetroButton>
+              </div>
+            )}
           </>
         )}
       </div>
