@@ -997,17 +997,17 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              {/* Charlie Klicker */}
+              {/* Charlie Klick */}
               <div className="bg-black/60 border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] transition-colors">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="text-2xl text-[#00ff00] font-bold mb-1">🎮 CHARLIE KLICKER</h3>
+                    <h3 className="text-2xl text-[#00ff00] font-bold mb-1">🎮 CHARLIE KLICK</h3>
                     <p className="text-[#00ff00] opacity-70 text-sm mb-2">Created by Jsuuuuu</p>
                   </div>
                 </div>
                 <p className="text-[#00ff00] mb-3">Click your way to victory in this addictive clicker game!</p>
                 <a 
-                  href="https://charlie-klicker.onrender.com" 
+                  href="https://charlie-klick.onrender.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-block"
