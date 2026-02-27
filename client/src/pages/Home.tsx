@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2 } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
@@ -63,6 +63,7 @@ export default function Home() {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showJumpscare, setShowJumpscare] = useState(false);
+  const [showGamesMenu, setShowGamesMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [userPfps, setUserPfps] = useState<Record<string, string>>({});
   const [showProfile, setShowProfile] = useState(false);
@@ -752,6 +753,13 @@ export default function Home() {
                 <Users className="w-5 h-5" />
               </button>
               <button 
+                onClick={() => setShowGamesMenu(true)}
+                className="text-[#00ff00] hover:text-[#ff6f61]"
+                title="Games"
+              >
+                <Gamepad2 className="w-5 h-5" />
+              </button>
+              <button 
                 onClick={handleDownloadHistory}
                 className="text-[#00ff00] hover:text-[#ff6f61]"
                 title="Download Chat History"
@@ -970,6 +978,55 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Games Menu Modal */}
+      {showGamesMenu && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80" onClick={() => setShowGamesMenu(false)}>
+          <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto retro-scrollbar" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl text-[#00ff00] text-shadow-neon flex items-center gap-3">
+                <Gamepad2 className="w-8 h-8" />
+                GAMES ARCADE
+              </h2>
+              <button 
+                onClick={() => setShowGamesMenu(false)}
+                className="text-[#ff6f61] hover:text-[#00ff00] text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Charlie Klicker */}
+              <div className="bg-black/60 border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] transition-colors">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="text-2xl text-[#00ff00] font-bold mb-1">🎮 CHARLIE KLICKER</h3>
+                    <p className="text-[#00ff00] opacity-70 text-sm mb-2">Created by Jsuuuuu</p>
+                  </div>
+                </div>
+                <p className="text-[#00ff00] mb-3">Click your way to victory in this addictive clicker game!</p>
+                <a 
+                  href="https://charlie-klicker.onrender.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
+                  <RetroButton className="w-full">
+                    PLAY NOW →
+                  </RetroButton>
+                </a>
+              </div>
+
+              {/* Add more games here */}
+              <div className="text-center text-[#00ff00] opacity-50 py-8 border-2 border-dashed border-[#00ff00]">
+                <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>MORE GAMES COMING SOON...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
