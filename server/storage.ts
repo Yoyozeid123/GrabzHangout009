@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { messages, users, type InsertMessage, type Message, type User } from "@shared/schema";
-import { desc, eq, lt, sql } from "drizzle-orm";
+import { messages, users, bannedUsers, type InsertMessage, type Message, type User, type BannedUser } from "@shared/schema";
+import { desc, eq, lt, sql, and } from "drizzle-orm";
 
 export interface IStorage {
   getMessages(room?: string): Promise<Message[]>;
@@ -9,6 +9,9 @@ export interface IStorage {
   deleteOldMessages(): Promise<number>;
   getUser(username: string): Promise<User | undefined>;
   upsertUser(username: string, pfp?: string): Promise<User>;
+  banUser(username: string, room: string, bannedBy: string): Promise<BannedUser>;
+  isBanned(username: string, room: string): Promise<boolean>;
+  unbanUser(username: string, room: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -47,6 +50,24 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({ target: users.username, set: { pfp } })
       .returning();
     return user;
+  }
+
+  async banUser(username: string, room: string, bannedBy: string): Promise<BannedUser> {
+    const [ban] = await db.insert(bannedUsers)
+      .values({ username, room, bannedBy })
+      .returning();
+    return ban;
+  }
+
+  async isBanned(username: string, room: string): Promise<boolean> {
+    const [ban] = await db.select().from(bannedUsers)
+      .where(and(eq(bannedUsers.username, username), eq(bannedUsers.room, room)));
+    return !!ban;
+  }
+
+  async unbanUser(username: string, room: string): Promise<void> {
+    await db.delete(bannedUsers)
+      .where(and(eq(bannedUsers.username, username), eq(bannedUsers.room, room)));
   }
 }
 

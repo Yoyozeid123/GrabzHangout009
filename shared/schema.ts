@@ -17,10 +17,21 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const bannedUsers = pgTable("banned_users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull(),
+  room: text("room").notNull(),
+  bannedBy: text("banned_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true });
+export const insertBannedUserSchema = createInsertSchema(bannedUsers).omit({ id: true, createdAt: true });
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type BannedUser = typeof bannedUsers.$inferSelect;
+export type InsertBannedUser = z.infer<typeof insertBannedUserSchema>;

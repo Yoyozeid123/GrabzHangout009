@@ -42,6 +42,10 @@ export function useWebSocket(username: string | null, room: string = "main") {
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
         } else if (data.type === "game") {
           setGameData(data.data);
+        } else if (data.type === "banned") {
+          alert(data.message || "You have been banned from this room");
+          localStorage.removeItem("chatUsername");
+          window.location.reload();
         }
       } catch (e) {
         console.error("WebSocket message error:", e);

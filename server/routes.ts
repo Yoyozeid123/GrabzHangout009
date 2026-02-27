@@ -56,11 +56,21 @@ export async function registerRoutes(
         
         if (msg.type === "join" && msg.username) {
           currentRoom = msg.room || "main";
-          onlineUsers.set(ws, { username: msg.username, room: currentRoom });
-          broadcastToRoom(currentRoom, { 
-            type: "userList", 
-            users: getUsersInRoom(currentRoom),
-            count: getUsersInRoom(currentRoom).length
+          
+          // Check if user is banned before allowing join
+          storage.isBanned(msg.username, currentRoom).then(isBanned => {
+            if (isBanned) {
+              ws.send(JSON.stringify({ type: "banned", message: "You are banned from this room" }));
+              ws.close();
+              return;
+            }
+            
+            onlineUsers.set(ws, { username: msg.username, room: currentRoom });
+            broadcastToRoom(currentRoom, { 
+              type: "userList", 
+              users: getUsersInRoom(currentRoom),
+              count: getUsersInRoom(currentRoom).length
+            });
           });
         } else if (msg.type === "typing" && msg.username) {
           typingUsers.add(msg.username);
@@ -302,6 +312,57 @@ export async function registerRoutes(
   app.post("/api/jumpscare-global", (req, res) => {
     broadcast({ type: "jumpscare" });
     res.json({ success: true });
+  });
+
+  // Ban user from room
+  app.post("/api/ban-user", async (req, res) => {
+    try {
+      const { username, room, bannedBy } = req.body;
+      
+      if (!username || !room || !bannedBy) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      await storage.banUser(username, room, bannedBy);
+      
+      // Kick the user from WebSocket
+      wss.clients.forEach((client) => {
+        const userData = onlineUsers.get(client);
+        if (userData?.username === username && userData?.room === room) {
+          client.send(JSON.stringify({ type: "banned", message: "You have been banned from this room" }));
+          client.close();
+          onlineUsers.delete(client);
+        }
+      });
+
+      broadcastToRoom(room, { 
+        type: "userList", 
+        users: getUsersInRoom(room),
+        count: getUsersInRoom(room).length
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to ban user" });
+    }
+  });
+
+  // Check if user is banned
+  app.get("/api/check-ban/:username/:room", async (req, res) => {
+    const { username, room } = req.params;
+    const isBanned = await storage.isBanned(username, room);
+    res.json({ banned: isBanned });
+  });
+
+  // Unban user (admin only)
+  app.post("/api/unban-user", async (req, res) => {
+    try {
+      const { username, room } = req.body;
+      await storage.unbanUser(username, room);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unban user" });
+    }
   });
 
   // Auto-delete old messages every hour

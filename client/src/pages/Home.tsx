@@ -183,6 +183,15 @@ export default function Home() {
   };
 
   const handleJoinRoom = async (room: string, password?: string, owner?: string) => {
+    // Check if user is banned first
+    const banCheck = await fetch(`/api/check-ban/${username}/${room}`);
+    const banData = await banCheck.json();
+    
+    if (banData.banned) {
+      alert(`❌ You are banned from ${room}`);
+      return;
+    }
+
     // Verify password
     const res = await fetch('/api/rooms/verify', {
       method: 'POST',
@@ -243,6 +252,31 @@ export default function Home() {
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setText(e.target.value);
     sendTyping();
+  };
+
+  const handleBanUser = async (userToBan: string) => {
+    if (!confirm(`Ban ${userToBan} from this room permanently?`)) return;
+    
+    try {
+      const response = await fetch('/api/ban-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: userToBan, 
+          room: roomName, 
+          bannedBy: username 
+        })
+      });
+      
+      if (response.ok) {
+        alert(`${userToBan} has been banned from ${roomName}`);
+      } else {
+        alert('Failed to ban user');
+      }
+    } catch (error) {
+      console.error('Ban error:', error);
+      alert('Failed to ban user');
+    }
   };
 
   const handleGifSelect = (gifUrl: string) => {
@@ -715,9 +749,20 @@ export default function Home() {
           </div>
           <div className="p-3 space-y-2 max-h-[200px] md:max-h-[350px] overflow-y-auto retro-scrollbar">
             {onlineUsers.map((user, idx) => (
-              <div key={idx} className="text-[#00ff00] flex items-center gap-2">
-                <span className="text-[#ff6f61]">●</span>
-                <span className={user === username ? "font-bold" : ""}>{user}</span>
+              <div key={idx} className="text-[#00ff00] flex items-center justify-between gap-2 group">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ff6f61]">●</span>
+                  <span className={user === username ? "font-bold" : ""}>{user}</span>
+                </div>
+                {(isAdmin || isRoomOwner) && user !== username && (
+                  <button
+                    onClick={() => handleBanUser(user)}
+                    className="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                    title="Ban User"
+                  >
+                    BAN
+                  </button>
+                )}
               </div>
             ))}
           </div>
