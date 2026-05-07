@@ -8,6 +8,7 @@ import path from "path";
 import fs from "fs";
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
+import { moderateMessage, isMuted, isGloballyBanned, isNsfwGifQuery } from "./moderation";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -160,6 +161,33 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Content blocked: Inappropriate language detected" });
       }
       
+      // AI moderation
+      if (input.type === "text") {
+        const banned = await isGloballyBanned(input.username);
+        if (banned.banned) {
+          return res.status(403).json({ message: banned.permanent ? "You are permanently banned" : "You are temporarily banned" });
+        }
+        const muted = await isMuted(input.username);
+        if (muted) {
+          return res.status(403).json({ message: "You are muted for spamming" });
+        }
+        const modResult = await moderateMessage(input.username, input.content);
+        if (modResult) {
+          // Kick banned users via WebSocket
+          if (modResult.action === 'ban' || modResult.action === 'permaban') {
+            wss.clients.forEach((client) => {
+              const userData = onlineUsers.get(client);
+              if (userData?.username === input.username) {
+                client.send(JSON.stringify({ type: "banned", message: modResult.reason }));
+                client.close();
+                onlineUsers.delete(client);
+              }
+            });
+          }
+          return res.status(403).json({ message: modResult.reason });
+        }
+      }
+
       const msg = await storage.createMessage(input);
       broadcastToRoom(input.room || "main", { type: "newMessage", message: msg });
       res.status(201).json(msg);
@@ -214,6 +242,10 @@ export async function registerRoutes(
     const query = req.query.q as string;
     if (!query) {
       return res.status(400).json({ message: "Query required" });
+    }
+
+    if (isNsfwGifQuery(query)) {
+      return res.status(400).json({ message: "Inappropriate GIF search blocked", data: [] });
     }
 
     const apiKey = process.env.TENOR_API_KEY || "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ";

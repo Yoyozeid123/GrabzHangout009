@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -26,6 +26,15 @@ export const bannedUsers = pgTable("banned_users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const moderationActions = pgTable("moderation_actions", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull(),
+  action: text("action").notNull(), // 'strike' | 'mute' | 'ban' | 'permaban'
+  reason: text("reason").notNull(),
+  expiresAt: timestamp("expires_at"), // null = permanent
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true });
 export const insertBannedUserSchema = createInsertSchema(bannedUsers).omit({ id: true, createdAt: true });
@@ -36,3 +45,4 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type BannedUser = typeof bannedUsers.$inferSelect;
 export type InsertBannedUser = z.infer<typeof insertBannedUserSchema>;
+export type ModerationAction = typeof moderationActions.$inferSelect;
