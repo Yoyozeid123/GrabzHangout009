@@ -9,6 +9,13 @@ import fs from "fs";
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { moderateMessage, isMuted, isGloballyBanned, isNsfwGifQuery } from "./moderation";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -226,11 +233,23 @@ export async function registerRoutes(
     if (!username) {
       return res.status(400).json({ message: "Username required" });
     }
-    
-    const pfpUrl = `/uploads/${req.file.filename}`;
-    await storage.upsertUser(username, pfpUrl);
-    
-    res.status(201).json({ pfp: pfpUrl });
+
+    try {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "grabzhangout_pfps",
+        public_id: `pfp_${username}`,
+        overwrite: true,
+        transformation: [{ width: 128, height: 128, crop: "fill" }],
+      });
+      // Clean up temp file
+      fs.unlink(req.file.path, () => {});
+      const pfpUrl = result.secure_url;
+      await storage.upsertUser(username, pfpUrl);
+      res.status(201).json({ pfp: pfpUrl });
+    } catch (err) {
+      fs.unlink(req.file.path, () => {});
+      res.status(500).json({ message: "Failed to upload profile picture" });
+    }
   });
 
   app.get("/api/users/:username", async (req, res) => {
