@@ -86,20 +86,20 @@ export default function Home() {
   const audioChunksRef = useRef<Blob[]>([]);
   const warningVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Clear old pfps on version change
+  // Check for new deployment and show refresh banner
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
   useEffect(() => {
-    const currentVersion = "v1.0.0"; // Update this when you deploy
+    const currentVersion = "v1.0.3";
     const savedVersion = localStorage.getItem("appVersion");
-    
+    if (savedVersion && savedVersion !== currentVersion) {
+      setShowUpdateBanner(true);
+    }
+    // Clear old pfps on version change
     if (savedVersion !== currentVersion) {
-      // Clear all pfp data
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("pfp_")) {
-          localStorage.removeItem(key);
-        }
+        if (key.startsWith("pfp_")) localStorage.removeItem(key);
       });
       localStorage.setItem("appVersion", currentVersion);
-      console.log("Cleared old profile pictures due to version update");
     }
   }, []);
   
@@ -590,6 +590,14 @@ export default function Home() {
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+
+      {showUpdateBanner && (
+        <div className="fixed top-0 left-0 right-0 z-[500] bg-yellow-400 text-black text-center py-2 font-bold text-sm flex items-center justify-center gap-4">
+          🔔 Site updated! Please refresh the page for the latest version.
+          <button onClick={() => window.location.reload()} className="bg-black text-yellow-400 px-3 py-1 rounded text-xs font-bold">Refresh now</button>
+          <button onClick={() => setShowUpdateBanner(false)} className="text-black underline text-xs">Dismiss</button>
+        </div>
+      )}
 
       {showIntro && introStage === 'warning' && (
         <div className="fixed inset-0 z-[300] bg-black flex items-center justify-center">
