@@ -9,6 +9,7 @@ export function useWebSocket(username: string | null, room: string = "main") {
   const [jumpscareTrigger, setJumpscareTrigger] = useState(0);
   const [gameData, setGameData] = useState<any>(null);
   const [announcement, setAnnouncement] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
