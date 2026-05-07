@@ -107,7 +107,7 @@ export default function Home() {
   const sendMessage = useSendMessage(roomName);
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
-  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, broadcastGame, confettiTrigger, jumpscareTrigger, gameData: wsGameData } = useWebSocket(username, roomName);
+  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, broadcastGame, confettiTrigger, jumpscareTrigger, gameData: wsGameData, announcement, setAnnouncement } = useWebSocket(username, roomName);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
   const isRoomOwner = username === roomOwner;
@@ -591,7 +591,14 @@ export default function Home() {
     >
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
-      {showUpdateBanner && (
+      {announcement && (
+        <div className="fixed top-0 left-0 right-0 z-[500] bg-red-500 text-white text-center py-2 font-bold text-sm flex items-center justify-center gap-4">
+          📢 {announcement}
+          <button onClick={() => setAnnouncement(null)} className="underline text-xs">Dismiss</button>
+        </div>
+      )}
+
+      {showUpdateBanner && !announcement && (
         <div className="fixed top-0 left-0 right-0 z-[500] bg-yellow-400 text-black text-center py-2 font-bold text-sm flex items-center justify-center gap-4">
           🔔 Site updated! Please refresh the page for the latest version.
           <button onClick={() => window.location.reload()} className="bg-black text-yellow-400 px-3 py-1 rounded text-xs font-bold">Refresh now</button>
@@ -742,6 +749,34 @@ export default function Home() {
                 <LogOut className="w-4 h-4 inline mr-2" />
                 SIGN OUT
               </RetroButton>
+
+              {/* Admin Announce */}
+              {isAdmin && (
+                <div className="border-t-2 border-[#00ff00] pt-4">
+                  <label className="text-[#ff6f61] block mb-2 font-bold">📢 GLOBAL ANNOUNCEMENT:</label>
+                  <textarea
+                    id="announce-input"
+                    className="w-full bg-black border-2 border-[#ff6f61] text-[#00ff00] p-2 text-sm resize-none"
+                    rows={2}
+                    placeholder="Type announcement..."
+                  />
+                  <RetroButton
+                    className="w-full mt-2 bg-[#ff6f61] text-black"
+                    onClick={async () => {
+                      const msg = (document.getElementById("announce-input") as HTMLTextAreaElement).value.trim();
+                      if (!msg) return;
+                      await fetch("/api/announce", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ message: msg, adminKey: "GRABZZZ_ADMIN" }),
+                      });
+                      (document.getElementById("announce-input") as HTMLTextAreaElement).value = "";
+                    }}
+                  >
+                    SEND TO ALL
+                  </RetroButton>
+                </div>
+              )}
             </div>
           </div>
         </div>

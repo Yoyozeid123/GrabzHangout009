@@ -358,6 +358,15 @@ export async function registerRoutes(
     res.send(text);
   });
 
+  app.post("/api/announce", (req, res) => {
+    const { message, adminKey } = req.body;
+    if (adminKey !== process.env.ADMIN_KEY && adminKey !== "GRABZZZ_ADMIN") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    broadcast({ type: "announcement", message });
+    res.json({ success: true });
+  });
+
   app.post("/api/game-broadcast", (req, res) => {
     broadcast({ type: "game", data: req.body });
     res.json({ success: true });
