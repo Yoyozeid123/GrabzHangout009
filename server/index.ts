@@ -70,8 +70,22 @@ app.use((req, res, next) => {
         type TEXT NOT NULL,
         content TEXT NOT NULL,
         username TEXT NOT NULL,
+        room TEXT NOT NULL DEFAULT 'main',
         created_at TIMESTAMP DEFAULT NOW()
-      )
+      );
+      CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        pfp TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS banned_users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        room TEXT NOT NULL,
+        banned_by TEXT NOT NULL,
+        ip_address TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
     log("Database tables initialized");
   } catch (err) {
