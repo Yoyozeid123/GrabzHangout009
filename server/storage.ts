@@ -22,7 +22,7 @@ export class DatabaseStorage implements IStorage {
     const msgs = await db.select().from(messages)
       .where(eq(messages.room, room))
       .orderBy(desc(messages.createdAt))
-      .limit(50);
+      .limit(200);
     return msgs.reverse();
   }
 
