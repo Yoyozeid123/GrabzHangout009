@@ -787,7 +787,7 @@ export default function Home() {
         {/* User List Sidebar */}
         <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 border-[#00ff00] box-shadow-retro flex-shrink-0 md:max-h-[400px]`}>
           <div className="bg-[#00ff00] text-black px-3 py-1 flex items-center gap-2 font-bold">
-            <Users className="w-5 h-5" />
+            <Users className="w-5 h-5 drop-shadow-[0_0_4px_#000]" />
             <span>ONLINE ({onlineCount})</span>
           </div>
           <div className="p-3 space-y-2 max-h-[200px] md:max-h-[350px] overflow-y-auto retro-scrollbar">
@@ -835,31 +835,31 @@ export default function Home() {
               <span className="blinking-cursor">EST. 1999 :: {onlineCount} USERS ONLINE</span>
               <button 
                 onClick={() => setShowUserList(!showUserList)}
-                className="md:hidden text-[#00ff00] hover:text-[#ff6f61]"
+                className="md:hidden group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
                 title="Users"
               >
-                <Users className="w-5 h-5" />
+                <Users className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
               </button>
               <button 
                 onClick={() => setShowGamesMenu(true)}
-                className="text-[#00ff00] hover:text-[#ff6f61]"
+                className="group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
                 title="Games"
               >
-                <Gamepad2 className="w-5 h-5" />
+                <Gamepad2 className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] group-hover:scale-110 transition-all duration-150" />
               </button>
               <button 
                 onClick={handleDownloadHistory}
-                className="text-[#00ff00] hover:text-[#ff6f61]"
+                className="group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
                 title="Download Chat History"
               >
-                <Download className="w-5 h-5" />
+                <Download className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
               </button>
               <button 
                 onClick={() => setShowProfile(true)}
-                className="text-[#00ff00] hover:text-[#ff6f61]"
+                className="group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
                 title="Profile Settings"
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] group-hover:rotate-45 transition-all duration-300" />
               </button>
             </div>
           </header>
@@ -1073,7 +1073,7 @@ export default function Home() {
           <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto retro-scrollbar" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl text-[#00ff00] text-shadow-neon flex items-center gap-3">
-                <Gamepad2 className="w-8 h-8" />
+                <Gamepad2 className="w-8 h-8 drop-shadow-[0_0_8px_#00ff00]" />
                 GAMES ARCADE
               </h2>
               <button 
@@ -1108,7 +1108,7 @@ export default function Home() {
 
               {/* Add more games here */}
               <div className="text-center text-[#00ff00] opacity-50 py-8 border-2 border-dashed border-[#00ff00]">
-                <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50 drop-shadow-[0_0_6px_#00ff00]" />
                 <p>MORE GAMES COMING SOON...</p>
               </div>
             </div>
