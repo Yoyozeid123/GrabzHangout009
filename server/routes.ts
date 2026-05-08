@@ -229,8 +229,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Content blocked: Inappropriate language detected" });
       }
       
-      // AI moderation
-      if (input.type === "text") {
+      // AI moderation — skip for admin
+      if (input.type === "text" && input.username.toLowerCase() !== "yofez009") {
         const banned = await isGloballyBanned(input.username);
         if (banned.banned) {
           return res.status(403).json({ message: banned.permanent ? "You are permanently banned" : "You are temporarily banned" });
@@ -241,7 +241,6 @@ export async function registerRoutes(
         }
         const modResult = await moderateMessage(input.username, input.content);
         if (modResult) {
-          // Kick banned users via WebSocket
           if (modResult.action === 'ban' || modResult.action === 'permaban') {
             wss.clients.forEach((client) => {
               const userData = onlineUsers.get(client);
