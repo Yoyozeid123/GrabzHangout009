@@ -421,7 +421,10 @@ export async function registerRoutes(
 
   app.post("/api/announce", (req, res) => {
     const { message, adminKey } = req.body;
-    if (adminKey !== process.env.ADMIN_KEY && adminKey !== "GRABZZZ_ADMIN") {
+    const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress;
+    const ADMIN_IP = "83.233.185.102";
+    // Must be admin IP AND correct key
+    if (clientIp !== ADMIN_IP || (adminKey !== process.env.ADMIN_KEY && adminKey !== "GRABZZZ_ADMIN")) {
       return res.status(403).json({ message: "Unauthorized" });
     }
     broadcast({ type: "announcement", message });
@@ -462,8 +465,9 @@ export async function registerRoutes(
   });
 
   app.post("/api/jumpscare-global", (req, res) => {
+    const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress;
     const { adminKey } = req.body;
-    if (adminKey !== "GRABZZZ_ADMIN") {
+    if (clientIp !== "83.233.185.102" || adminKey !== "GRABZZZ_ADMIN") {
       return res.status(403).json({ error: "Forbidden" });
     }
     broadcast({ type: "jumpscare" });
@@ -532,8 +536,8 @@ export async function registerRoutes(
 
   // List all bans (admin only)
   app.get("/api/bans", async (req, res) => {
-    const adminKey = req.query.adminKey as string;
-    if (adminKey !== "GRABZZZ_ADMIN") return res.status(403).json({ message: "Unauthorized" });
+    const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress;
+    if (clientIp !== "83.233.185.102") return res.status(403).json({ message: "Unauthorized" });
     const bans = await storage.getBans();
     res.json(bans);
   });
