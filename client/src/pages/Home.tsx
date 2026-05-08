@@ -942,13 +942,13 @@ export default function Home() {
 
       {showProfile && (
         <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowProfile(false)}>
-          <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-md w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6 flex-shrink-0">
               <h2 className="text-2xl text-[#00ff00] text-shadow-neon">PROFILE SETTINGS</h2>
               <button onClick={() => setShowProfile(false)} className="text-[#ff6f61] text-2xl">✕</button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto retro-scrollbar flex-1 pr-1">
               {/* Profile Picture */}
               <div className="text-center">
                 {userPfps[username!] ? (
