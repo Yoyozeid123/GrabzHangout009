@@ -14,6 +14,7 @@ export interface IStorage {
   banUser(username: string, room: string, bannedBy: string, ipAddress?: string): Promise<BannedUser>;
   isBanned(username: string, room: string, ipAddress?: string): Promise<boolean>;
   unbanUser(username: string, room: string): Promise<void>;
+  getBans(): Promise<BannedUser[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -87,6 +88,10 @@ export class DatabaseStorage implements IStorage {
   async unbanUser(username: string, room: string): Promise<void> {
     await db.delete(bannedUsers)
       .where(and(eq(bannedUsers.username, username), eq(bannedUsers.room, room)));
+  }
+
+  async getBans(): Promise<BannedUser[]> {
+    return db.select().from(bannedUsers).orderBy(desc(bannedUsers.createdAt));
   }
 }
 

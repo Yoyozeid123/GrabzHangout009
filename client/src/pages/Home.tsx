@@ -69,6 +69,44 @@ function JumpscareVideo({ onClose }: { onClose: () => void }) {
   );
 }
 
+function BanList() {
+  const [bans, setBans] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const res = await fetch("/api/bans?adminKey=GRABZZZ_ADMIN");
+    const data = await res.json();
+    setBans(data);
+    setLoading(false);
+  };
+
+  React.useEffect(() => { load(); }, []);
+
+  const unban = async (username: string, room: string) => {
+    await fetch("/api/unban-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, room }),
+    });
+    load();
+  };
+
+  if (loading) return <div className="text-[#00ff00] text-sm">Loading...</div>;
+  if (!bans.length) return <div className="text-[#00ff00] opacity-50 text-sm">No bans.</div>;
+
+  return (
+    <div className="max-h-40 overflow-y-auto retro-scrollbar space-y-1">
+      {bans.map((ban, i) => (
+        <div key={i} className="flex items-center justify-between border border-red-500 px-2 py-1 text-sm">
+          <span className="text-red-400">{ban.username} <span className="text-[#00ff00] opacity-60">#{ban.room}</span></span>
+          <button onClick={() => unban(ban.username, ban.room)} className="text-[#00ff00] hover:text-white text-xs underline ml-2">UNBAN</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [text, setText] = useState("");
   const [username, setUsername] = useState<string | null>(
@@ -1013,6 +1051,12 @@ export default function Home() {
                   >
                     SEND TO ALL
                   </RetroButton>
+
+                  {/* Ban list */}
+                  <div className="mt-4">
+                    <label className="text-[#ff6f61] block mb-2 font-bold">🚫 BAN LIST:</label>
+                    <BanList />
+                  </div>
                 </div>
               )}
             </div>

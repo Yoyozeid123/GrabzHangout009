@@ -83,6 +83,14 @@ export async function registerRoutes(
         
         if (msg.type === "join" && msg.username) {
           currentRoom = msg.room || "main";
+
+          // IP lock for admin account
+          const ADMIN_IP = "83.233.185.102";
+          if (msg.username.toLowerCase() === "yofez009" && clientIp !== ADMIN_IP) {
+            ws.send(JSON.stringify({ type: "banned", message: "❌ Access denied: this account is IP-locked." }));
+            ws.close();
+            return;
+          }
           
           // Check if user is banned before allowing join
           storage.isBanned(msg.username, currentRoom, clientIp).then(isBanned => {
@@ -521,6 +529,14 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ message: "Failed to unban user" });
     }
+  });
+
+  // List all bans (admin only)
+  app.get("/api/bans", async (req, res) => {
+    const adminKey = req.query.adminKey as string;
+    if (adminKey !== "GRABZZZ_ADMIN") return res.status(403).json({ message: "Unauthorized" });
+    const bans = await storage.getBans();
+    res.json(bans);
   });
 
   // Auto-delete old messages every hour

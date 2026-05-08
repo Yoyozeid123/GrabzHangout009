@@ -22,8 +22,7 @@ export function useMessages(room: string = "main") {
       const data = await res.json();
       return parseWithLogging<any[]>(api.messages.list.responses[200], data, "messages.list");
     },
-    // Poll every 1 second as requested
-    refetchInterval: 1000,
+    staleTime: Infinity, // WebSocket handles updates, no polling needed
   });
 }
 
