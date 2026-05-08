@@ -154,9 +154,15 @@ function BanList() {
 
 export default function Home() {
   const [text, setText] = useState("");
-  const [username, setUsername] = useState<string | null>(
-    localStorage.getItem("chatUsername")
-  );
+  const [username, setUsername] = useState<string | null>(() => {
+    const saved = localStorage.getItem("chatUsername");
+    // If admin account is saved, force re-login every session
+    if (saved?.toLowerCase() === "yofez009") {
+      localStorage.removeItem("chatUsername");
+      return null;
+    }
+    return saved;
+  });
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [showUserList, setShowUserList] = useState(false);
