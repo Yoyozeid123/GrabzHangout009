@@ -9,6 +9,8 @@ export interface IStorage {
   deleteOldMessages(): Promise<number>;
   getUser(username: string): Promise<User | undefined>;
   upsertUser(username: string, pfp?: string): Promise<User>;
+  updateBio(username: string, bio: string): Promise<void>;
+  incrementMessageCount(username: string): Promise<void>;
   banUser(username: string, room: string, bannedBy: string, ipAddress?: string): Promise<BannedUser>;
   isBanned(username: string, room: string, ipAddress?: string): Promise<boolean>;
   unbanUser(username: string, room: string): Promise<void>;
@@ -16,7 +18,6 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getMessages(room: string = "main"): Promise<Message[]> {
-    // Return last 50 messages for the room
     const msgs = await db.select().from(messages)
       .where(eq(messages.room, room))
       .orderBy(desc(messages.createdAt))
@@ -26,6 +27,7 @@ export class DatabaseStorage implements IStorage {
 
   async createMessage(insertMsg: InsertMessage): Promise<Message> {
     const [msg] = await db.insert(messages).values(insertMsg).returning();
+    await this.incrementMessageCount(insertMsg.username);
     return msg;
   }
 
@@ -46,10 +48,22 @@ export class DatabaseStorage implements IStorage {
 
   async upsertUser(username: string, pfp?: string): Promise<User> {
     const [user] = await db.insert(users)
-      .values({ username, pfp })
-      .onConflictDoUpdate({ target: users.username, set: { pfp } })
+      .values({ username, pfp, bio: "", messageCount: 0 })
+      .onConflictDoUpdate({ target: users.username, set: pfp ? { pfp } : {} })
       .returning();
     return user;
+  }
+
+  async updateBio(username: string, bio: string): Promise<void> {
+    await db.insert(users)
+      .values({ username, bio, messageCount: 0 })
+      .onConflictDoUpdate({ target: users.username, set: { bio } });
+  }
+
+  async incrementMessageCount(username: string): Promise<void> {
+    await db.insert(users)
+      .values({ username, messageCount: 1 })
+      .onConflictDoUpdate({ target: users.username, set: { messageCount: sql`${users.messageCount} + 1` } });
   }
 
   async banUser(username: string, room: string, bannedBy: string, ipAddress?: string): Promise<BannedUser> {
@@ -61,13 +75,11 @@ export class DatabaseStorage implements IStorage {
 
   async isBanned(username: string, room: string, ipAddress?: string): Promise<boolean> {
     const conditions = [eq(bannedUsers.room, room)];
-    
     if (ipAddress) {
       conditions.push(sql`(${bannedUsers.username} = ${username} OR ${bannedUsers.ipAddress} = ${ipAddress})`);
     } else {
       conditions.push(eq(bannedUsers.username, username));
     }
-    
     const [ban] = await db.select().from(bannedUsers).where(and(...conditions));
     return !!ban;
   }

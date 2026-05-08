@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2, Reply, X } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2, Reply, X, Pin, MessageSquare, Maximize, Minimize, Swords } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useWebSocket, type UserStatus } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
 import { RetroInput } from "@/components/RetroInput";
 import { GifPicker } from "@/components/GifPicker";
@@ -101,6 +101,14 @@ export default function Home() {
   const [reactions, setReactions] = useState<Record<number, Record<string, string[]>>>({});
   const [activeReactionMsg, setActiveReactionMsg] = useState<number | null>(null);
   const [announceText, setAnnounceText] = useState("");
+  const [myStatus, setMyStatus] = useState<UserStatus>("online");
+  const [showDMs, setShowDMs] = useState(false);
+  const [dmTarget, setDmTarget] = useState<string | null>(null);
+  const [dmText, setDmText] = useState("");
+  const [showUserProfile, setShowUserProfile] = useState<string | null>(null);
+  const [viewedUserData, setViewedUserData] = useState<any>(null);
+  const [bioInput, setBioInput] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const REACTION_EMOJIS = ["🔥", "💀", "😂", "❤️", "👍", "😮"];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
@@ -129,10 +137,35 @@ export default function Home() {
   const sendMessage = useSendMessage(roomName);
   const uploadImage = useUploadImage();
   const deleteMessage = useDeleteMessage();
-  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, broadcastGame, confettiTrigger, jumpscareTrigger, gameData: wsGameData, announcement, setAnnouncement } = useWebSocket(username, roomName);
+  const { onlineCount, onlineUsers, typingUsers, sendTyping, broadcastConfetti, broadcastJumpscare, broadcastGame, confettiTrigger, jumpscareTrigger, gameData: wsGameData, announcement, setAnnouncement, userStatuses, sendStatus, dms, sendDM, incomingChallenge, challengeAccepted, setChallengeAccepted, sendChallenge, acceptChallenge, declineChallenge, pinnedMsg, setPinnedMsg } = useWebSocket(username, roomName);
 
   const isAdmin = username?.toLowerCase() === "yofez009";
   const isRoomOwner = username === roomOwner;
+
+  // Fetch pinned message when joining room
+  useEffect(() => {
+    if (!roomName) return;
+    fetch(`/api/rooms/${roomName}/pin`).then(r => r.json()).then(pin => setPinnedMsg(pin));
+  }, [roomName]);
+
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // View another user's profile
+  const handleViewProfile = async (user: string) => {
+    const res = await fetch(`/api/users/${user}`);
+    const data = await res.json();
+    setViewedUserData(data);
+    setShowUserProfile(user);
+  };
 
   useEffect(() => {
     if (confettiTrigger > 0) {
@@ -451,6 +484,41 @@ export default function Home() {
     setActiveReactionMsg(null);
   };
 
+  const handlePinMessage = async (msg: any) => {
+    if (!isAdmin && !isRoomOwner) return;
+    await fetch(`/api/rooms/${roomName}/pin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ msgId: msg.id, username: msg.username, content: msg.content, pinnedBy: username }),
+    });
+  };
+
+  const handleUnpin = async () => {
+    await fetch(`/api/rooms/${roomName}/pin`, { method: "DELETE" });
+  };
+
+  const handleSaveBio = async () => {
+    if (!username) return;
+    await fetch(`/api/users/${username}/bio`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bio: bioInput }),
+    });
+    alert("✅ Bio saved!");
+  };
+
+  const handleSendDM = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dmText.trim() || !dmTarget) return;
+    sendDM(dmTarget, dmText.trim());
+    setDmText("");
+  };
+
+  const handleStatusChange = (status: UserStatus) => {
+    setMyStatus(status);
+    sendStatus(status);
+  };
+
   const handleWarningEnd = () => {
     setIntroStage('zoom');
     setTimeout(() => {
@@ -729,6 +797,111 @@ export default function Home() {
         />
       )}
 
+      {/* Incoming challenge popup */}
+      {incomingChallenge && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-black border-4 border-[#ff6f61] box-shadow-retro p-4 text-center">
+          <p className="text-[#ff6f61] text-xl mb-3"><Swords className="inline w-5 h-5 mr-1" />{incomingChallenge.from} challenges you to {incomingChallenge.game.toUpperCase()}!</p>
+          <div className="flex gap-2 justify-center">
+            <RetroButton onClick={() => acceptChallenge(incomingChallenge.from)}>ACCEPT ⚔️</RetroButton>
+            <RetroButton variant="secondary" onClick={() => declineChallenge(incomingChallenge.from)}>DECLINE</RetroButton>
+          </div>
+        </div>
+      )}
+
+      {/* Challenge accepted notification */}
+      {challengeAccepted && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-black border-4 border-[#00ff00] box-shadow-retro p-4 text-center">
+          <p className="text-[#00ff00] text-xl mb-2">⚔️ {challengeAccepted} accepted your challenge!</p>
+          <RetroButton onClick={() => setChallengeAccepted(null)}>OK</RetroButton>
+        </div>
+      )}
+
+      {/* DM Panel */}
+      {showDMs && (
+        <div className="fixed inset-y-0 right-0 z-[150] w-full max-w-sm bg-black border-l-4 border-[#00ff00] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#00ff00] text-black px-3 py-2 flex items-center justify-between font-bold">
+            <span>💬 DIRECT MESSAGES</span>
+            <button onClick={() => setShowDMs(false)}><X className="w-5 h-5" /></button>
+          </div>
+          {/* User list to DM */}
+          {!dmTarget ? (
+            <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
+              <p className="text-[#00ff00] opacity-70 text-sm mb-2">Select a user to message:</p>
+              {onlineUsers.filter(u => u !== username).map(u => (
+                <button key={u} onClick={() => setDmTarget(u)} className="w-full text-left text-[#00ff00] border border-[#00ff00] px-3 py-2 hover:bg-[#00ff00] hover:text-black transition-colors flex items-center gap-2">
+                  <span className={`text-xs ${userStatuses[u] === 'busy' ? 'text-red-400' : userStatuses[u] === 'afk' ? 'text-yellow-400' : 'text-green-400'}`}>●</span>
+                  {u}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-[#00ff00]">
+                <button onClick={() => setDmTarget(null)} className="text-[#ff6f61]"><X className="w-4 h-4" /></button>
+                <span className="text-[#00ff00] font-bold">@{dmTarget}</span>
+              </div>
+              <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
+                {dms.filter(d => d.from === dmTarget || (d.self && d.to === dmTarget)).map((d, i) => (
+                  <div key={i} className={`text-sm ${d.self ? 'text-right' : 'text-left'}`}>
+                    <span className={`inline-block px-2 py-1 border ${d.self ? 'border-[#ff6f61] text-[#ff6f61]' : 'border-[#00ff00] text-[#00ff00]'}`}>
+                      {d.content}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleSendDM} className="flex gap-2 p-2 border-t border-[#00ff00]">
+                <RetroInput value={dmText} onChange={e => setDmText(e.target.value)} placeholder="> MESSAGE..." className="flex-1" />
+                <RetroButton type="submit" disabled={!dmText.trim()}><Send className="w-4 h-4" /></RetroButton>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* User profile viewer */}
+      {showUserProfile && viewedUserData && (
+        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowUserProfile(null)}>
+          <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl text-[#00ff00]">{showUserProfile.toUpperCase()}</h2>
+              <button onClick={() => setShowUserProfile(null)} className="text-[#ff6f61]"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="text-center mb-4">
+              {viewedUserData.pfp ? (
+                <img src={viewedUserData.pfp} className="w-20 h-20 rounded-full border-4 border-[#00ff00] mx-auto" />
+              ) : (
+                <div className="w-20 h-20 rounded-full border-4 border-[#00ff00] bg-black mx-auto flex items-center justify-center text-3xl">👤</div>
+              )}
+              <div className="mt-2">
+                <span className={`text-sm ${userStatuses[showUserProfile] === 'busy' ? 'text-red-400' : userStatuses[showUserProfile] === 'afk' ? 'text-yellow-400' : 'text-green-400'}`}>
+                  ● {(userStatuses[showUserProfile] || 'online').toUpperCase()}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-3 text-[#00ff00]">
+              <div className="border border-[#00ff00] p-2">
+                <p className="text-xs opacity-70 mb-1">BIO</p>
+                <p>{viewedUserData.bio || "No bio set."}</p>
+              </div>
+              <div className="border border-[#00ff00] p-2 flex justify-between">
+                <span className="text-xs opacity-70">MESSAGES SENT</span>
+                <span className="font-bold">{viewedUserData.messageCount || 0}</span>
+              </div>
+              {showUserProfile !== username && (
+                <div className="flex gap-2">
+                  <RetroButton className="flex-1" onClick={() => { setDmTarget(showUserProfile); setShowDMs(true); setShowUserProfile(null); }}>
+                    <MessageSquare className="w-4 h-4 inline mr-1" />DM
+                  </RetroButton>
+                  <RetroButton variant="secondary" className="flex-1" onClick={() => { sendChallenge(showUserProfile!); setShowUserProfile(null); }}>
+                    <Swords className="w-4 h-4 inline mr-1" />CHALLENGE
+                  </RetroButton>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showProfile && (
         <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowProfile(false)}>
           <div className="bg-black border-4 border-[#00ff00] box-shadow-retro p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
@@ -782,6 +955,32 @@ export default function Home() {
                 </RetroButton>
               </div>
 
+              {/* Bio */}
+              <div>
+                <label className="text-[#00ff00] block mb-2">BIO (max 200 chars):</label>
+                <textarea
+                  className="w-full bg-black border-2 border-[#00ff00] text-[#00ff00] p-2 text-sm resize-none"
+                  rows={2}
+                  maxLength={200}
+                  placeholder="Tell people about yourself..."
+                  value={bioInput}
+                  onChange={e => setBioInput(e.target.value)}
+                />
+                <RetroButton onClick={handleSaveBio} className="w-full mt-1">SAVE BIO</RetroButton>
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="text-[#00ff00] block mb-2">STATUS:</label>
+                <div className="flex gap-2">
+                  {(["online","afk","busy"] as UserStatus[]).map(s => (
+                    <RetroButton key={s} onClick={() => handleStatusChange(s)} className={`flex-1 text-xs ${myStatus === s ? 'bg-[#00ff00] text-black' : ''}`}>
+                      {s === 'online' ? '🟢' : s === 'afk' ? '🌙' : '🔴'} {s.toUpperCase()}
+                    </RetroButton>
+                  ))}
+                </div>
+              </div>
+
               {/* Sign Out */}
               <RetroButton onClick={handleSignOut} variant="secondary" className="w-full text-[#ff6f61]">
                 <LogOut className="w-4 h-4 inline mr-2" />
@@ -821,7 +1020,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="w-full max-w-7xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-2 md:p-4 z-20">
+      <div className="w-full max-w-7xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-2 md:p-4 z-20 pb-20 md:pb-4">
         
         {/* User List Sidebar */}
         <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 border-[#00ff00] box-shadow-retro flex-shrink-0 md:max-h-[400px]`}>
@@ -832,10 +1031,10 @@ export default function Home() {
           <div className="p-3 space-y-2 max-h-[200px] md:max-h-[350px] overflow-y-auto retro-scrollbar">
             {onlineUsers.map((user, idx) => (
               <div key={idx} className="text-[#00ff00] flex items-center justify-between gap-2 group">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#ff6f61]">●</span>
+                <button className="flex items-center gap-2 hover:text-[#ff6f61] transition-colors" onClick={() => handleViewProfile(user)}>
+                  <span className={`text-xs ${userStatuses[user] === 'busy' ? 'text-red-400' : userStatuses[user] === 'afk' ? 'text-yellow-400' : 'text-[#ff6f61]'}`}>●</span>
                   <span className={user === username ? "font-bold" : ""}>{user}</span>
-                </div>
+                </button>
                 {(isAdmin || isRoomOwner) && user !== username && (
                   <button
                     onClick={() => handleBanUser(user)}
@@ -900,12 +1099,41 @@ export default function Home() {
               >
                 <Settings className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] group-hover:rotate-45 transition-all duration-300" />
               </button>
+              <button
+                onClick={() => setShowDMs(true)}
+                className="group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
+                title="Direct Messages"
+              >
+                <MessageSquare className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
+              </button>
+              {/* Fullscreen — mobile only */}
+              <button
+                onClick={toggleFullscreen}
+                className="md:hidden group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
+                title="Fullscreen"
+              >
+                {isFullscreen
+                  ? <Minimize className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00]" />
+                  : <Maximize className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00]" />}
+              </button>
             </div>
           </header>
 
           <marquee className="text-[#00ff00] text-xl border-y-2 border-dashed border-[#00ff00] py-1 mb-2 bg-black/80">
             *** ROOM: {roomName.toUpperCase()} *** WELCOME TO GRABZHANGOUT009 *** THE COOLEST CHATROOM ON THE WORLD WIDE WEB *** UPLOAD YOUR DANKEST MEMES *** NO LURKING ALLOWED ***
           </marquee>
+
+          {/* Pinned message */}
+          {pinnedMsg && (
+            <div className="flex items-center gap-2 bg-black border-2 border-yellow-400 px-3 py-1 mb-1 text-sm">
+              <Pin className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+              <span className="text-yellow-400 font-bold mr-1">@{pinnedMsg.username}:</span>
+              <span className="text-[#00ff00] truncate">{pinnedMsg.content}</span>
+              {(isAdmin || isRoomOwner) && (
+                <button onClick={handleUnpin} className="ml-auto text-yellow-400 hover:text-white flex-shrink-0"><X className="w-4 h-4" /></button>
+              )}
+            </div>
+          )}
 
           <div className="flex-1 flex flex-col bg-black/85 border-4 border-[#00ff00] box-shadow-retro mb-2 min-h-0">
             
@@ -952,6 +1180,24 @@ export default function Home() {
                           title="React"
                         >
                           <Smile className="w-4 h-4" />
+                        </button>
+                        {/* Pin button — admin/owner only */}
+                        {(isAdmin || isRoomOwner) && msg.type === "text" && (
+                          <button
+                            onClick={() => handlePinMessage(msg)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-yellow-400 hover:text-yellow-300"
+                            title="Pin Message"
+                          >
+                            <Pin className="w-4 h-4" />
+                          </button>
+                        )}
+                        {/* Username click → profile */}
+                        <button
+                          onClick={() => handleViewProfile(msg.username)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00aa00] hover:text-[#00ff00] text-sm"
+                          title="View Profile"
+                        >
+                          👤
                         </button>
                       </div>
                     
@@ -1215,6 +1461,10 @@ export default function Home() {
           <Gamepad2 className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
           <span className="text-xs mt-0.5">GAMES</span>
         </button>
+        <button onClick={() => setShowDMs(true)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
+          <MessageSquare className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
+          <span className="text-xs mt-0.5">DMS</span>
+        </button>
         <button onClick={() => setShowGifPicker(true)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
           <Smile className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
           <span className="text-xs mt-0.5">GIF</span>
@@ -1226,6 +1476,10 @@ export default function Home() {
         <button onClick={() => setShowProfile(true)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
           <Settings className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
           <span className="text-xs mt-0.5">PROFILE</span>
+        </button>
+        <button onClick={toggleFullscreen} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
+          {isFullscreen ? <Minimize className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" /> : <Maximize className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />}
+          <span className="text-xs mt-0.5">{isFullscreen ? 'EXIT' : 'FULL'}</span>
         </button>
       </div>
     </div>

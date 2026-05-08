@@ -13,7 +13,9 @@ export const messages = pgTable("messages", {
 
 export const users = pgTable("users", {
   username: text("username").primaryKey(),
-  pfp: text("pfp"), // profile picture URL
+  pfp: text("pfp"),
+  bio: text("bio").default(""),
+  messageCount: integer("message_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

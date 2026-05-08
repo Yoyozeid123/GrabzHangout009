@@ -32,6 +32,8 @@ const uploadVoice = storage_multer.single("voice");
 const onlineUsers = new Map<WebSocket, { username: string; room: string; ip: string }>();
 const rooms = new Map<string, { password?: string; created: Date; owner: string }>();
 const MAX_ROOMS = 30;
+const pinnedMessages = new Map<string, { id: number; username: string; content: string; pinnedBy: string }>();
+const userStatuses = new Map<string, "online" | "afk" | "busy">();
 
 // Initialize main room
 rooms.set("main", { password: "GRABZZZ", created: new Date(), owner: "Yofez009" });
@@ -117,6 +119,40 @@ export async function registerRoutes(
           }
         } else if (msg.type === "game") {
           broadcastToRoom(currentRoom, { type: "game", data: msg.data });
+        } else if (msg.type === "status" && msg.username) {
+          userStatuses.set(msg.username, msg.status);
+          broadcastToRoom(currentRoom, { type: "statusUpdate", username: msg.username, status: msg.status });
+        } else if (msg.type === "dm" && msg.to && msg.username && msg.content) {
+          // Send DM only to target user (all their connections)
+          wss.clients.forEach(client => {
+            const ud = onlineUsers.get(client);
+            if (client.readyState === WebSocket.OPEN && ud?.username === msg.to) {
+              client.send(JSON.stringify({ type: "dm", from: msg.username, content: msg.content }));
+            }
+          });
+          // Echo back to sender
+          ws.send(JSON.stringify({ type: "dm", from: msg.username, to: msg.to, content: msg.content, self: true }));
+        } else if (msg.type === "challenge" && msg.to && msg.username) {
+          wss.clients.forEach(client => {
+            const ud = onlineUsers.get(client);
+            if (client.readyState === WebSocket.OPEN && ud?.username === msg.to) {
+              client.send(JSON.stringify({ type: "challenge", from: msg.username, game: msg.game || "pong" }));
+            }
+          });
+        } else if (msg.type === "challenge-accept" && msg.to && msg.username) {
+          wss.clients.forEach(client => {
+            const ud = onlineUsers.get(client);
+            if (client.readyState === WebSocket.OPEN && ud?.username === msg.to) {
+              client.send(JSON.stringify({ type: "challenge-accept", from: msg.username }));
+            }
+          });
+        } else if (msg.type === "challenge-decline" && msg.to && msg.username) {
+          wss.clients.forEach(client => {
+            const ud = onlineUsers.get(client);
+            if (client.readyState === WebSocket.OPEN && ud?.username === msg.to) {
+              client.send(JSON.stringify({ type: "challenge-decline", from: msg.username }));
+            }
+          });
         }
       } catch (e) {
         console.error("WebSocket message error:", e);
@@ -382,6 +418,34 @@ export async function registerRoutes(
       return res.status(403).json({ message: "Unauthorized" });
     }
     broadcast({ type: "announcement", message });
+    res.json({ success: true });
+  });
+
+  // Pinned messages
+  app.get("/api/rooms/:room/pin", (req, res) => {
+    const pin = pinnedMessages.get(req.params.room);
+    res.json(pin || null);
+  });
+
+  app.post("/api/rooms/:room/pin", (req, res) => {
+    const { msgId, username, content, pinnedBy } = req.body;
+    if (!msgId || !pinnedBy) return res.status(400).json({ message: "Missing fields" });
+    pinnedMessages.set(req.params.room, { id: msgId, username, content, pinnedBy });
+    broadcastToRoom(req.params.room, { type: "pinned", pin: pinnedMessages.get(req.params.room) });
+    res.json({ success: true });
+  });
+
+  app.delete("/api/rooms/:room/pin", (req, res) => {
+    pinnedMessages.delete(req.params.room);
+    broadcastToRoom(req.params.room, { type: "pinned", pin: null });
+    res.json({ success: true });
+  });
+
+  // User bio
+  app.post("/api/users/:username/bio", async (req, res) => {
+    const { bio } = req.body;
+    if (typeof bio !== "string") return res.status(400).json({ message: "Bio required" });
+    await storage.updateBio(req.params.username, bio.slice(0, 200));
     res.json({ success: true });
   });
 
