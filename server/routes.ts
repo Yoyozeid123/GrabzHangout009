@@ -97,7 +97,9 @@ export async function registerRoutes(
         } else if (msg.type === "confetti") {
           broadcastToRoom(currentRoom, { type: "confetti" });
         } else if (msg.type === "jumpscare") {
-          broadcastToRoom(currentRoom, { type: "jumpscare" });
+          if (msg.username?.toLowerCase() === "yofez009") {
+            broadcastToRoom(currentRoom, { type: "jumpscare" });
+          }
         } else if (msg.type === "game") {
           broadcastToRoom(currentRoom, { type: "game", data: msg.data });
         }
@@ -373,6 +375,10 @@ export async function registerRoutes(
   });
 
   app.post("/api/jumpscare-global", (req, res) => {
+    const { adminKey } = req.body;
+    if (adminKey !== "GRABZZZ_ADMIN") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     broadcast({ type: "jumpscare" });
     res.json({ success: true });
   });
