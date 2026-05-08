@@ -69,13 +69,58 @@ function JumpscareVideo({ onClose }: { onClose: () => void }) {
   );
 }
 
+function AdminAnnouncePanel() {
+  const [answer, setAnswer] = React.useState("");
+  const [unlocked, setUnlocked] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+
+  const check = () => {
+    if (answer.trim().toUpperCase() === "APE INC") setUnlocked(true);
+    else { alert("❌ WRONG ANSWER LMAOOO"); setAnswer(""); }
+  };
+
+  if (!unlocked) return (
+    <div className="space-y-2">
+      <RetroInput value={answer} onChange={e => setAnswer(e.target.value)} placeholder="> YOUR ANSWER..." onKeyDown={e => e.key === "Enter" && check()} />
+      <RetroButton className="w-full" onClick={check}>VERIFY 🐒</RetroButton>
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      <p className="text-green-400 text-xs">✅ VERIFIED. YOU MAY SPEAK.</p>
+      <textarea
+        className="w-full bg-black border-2 border-[#ff6f61] text-[#00ff00] p-2 text-sm resize-none"
+        rows={2}
+        placeholder="Type announcement..."
+        value={msg}
+        onChange={e => setMsg(e.target.value)}
+      />
+      <RetroButton
+        className="w-full bg-[#ff6f61] text-black"
+        onClick={async () => {
+          if (!msg.trim()) return;
+          await fetch("/api/announce", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg.trim(), adminKey: "APE INC" }),
+          });
+          setMsg("");
+        }}
+      >
+        SEND TO ALL
+      </RetroButton>
+    </div>
+  );
+}
+
 function BanList() {
   const [bans, setBans] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch("/api/bans?adminKey=GRABZZZ_ADMIN");
+    const res = await fetch("/api/bans?adminKey=APE%20INC");
     const data = await res.json();
     setBans(data);
     setLoading(false);
@@ -1029,28 +1074,14 @@ export default function Home() {
               {isAdmin && (
                 <div className="border-t-2 border-[#00ff00] pt-4">
                   <label className="text-[#ff6f61] block mb-2 font-bold">📢 GLOBAL ANNOUNCEMENT:</label>
-                  <textarea
-                    className="w-full bg-black border-2 border-[#ff6f61] text-[#00ff00] p-2 text-sm resize-none"
-                    rows={2}
-                    placeholder="Type announcement..."
-                    value={announceText}
-                    onChange={(e) => setAnnounceText(e.target.value)}
+                  <p className="text-[#00ff00] text-xs mb-2 opacity-70">🐒 yo what's the greatest company to ever exist on this planet fr fr no cap??</p>
+                  <RetroInput
+                    placeholder="> TYPE THE ANSWER..."
+                    value={announceText.startsWith("__verified__") ? "" : ""}
+                    onChange={() => {}}
+                    className="hidden"
                   />
-                  <RetroButton
-                    className="w-full mt-2 bg-[#ff6f61] text-black"
-                    onClick={async () => {
-                      const msg = announceText.trim();
-                      if (!msg) return;
-                      await fetch("/api/announce", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ message: msg, adminKey: "GRABZZZ_ADMIN" }),
-                      });
-                      setAnnounceText("");
-                    }}
-                  >
-                    SEND TO ALL
-                  </RetroButton>
+                  <AdminAnnouncePanel />
 
                   {/* Ban list */}
                   <div className="mt-4">

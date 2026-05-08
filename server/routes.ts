@@ -83,14 +83,6 @@ export async function registerRoutes(
         
         if (msg.type === "join" && msg.username) {
           currentRoom = msg.room || "main";
-
-          // IP lock for admin account
-          const ADMIN_IP = "83.233.185.102";
-          if (msg.username.toLowerCase() === "yofez009" && clientIp !== ADMIN_IP) {
-            ws.send(JSON.stringify({ type: "banned", message: "❌ Access denied: this account is IP-locked." }));
-            ws.close();
-            return;
-          }
           
           // Check if user is banned before allowing join
           storage.isBanned(msg.username, currentRoom, clientIp).then(isBanned => {
@@ -421,10 +413,7 @@ export async function registerRoutes(
 
   app.post("/api/announce", (req, res) => {
     const { message, adminKey } = req.body;
-    const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress;
-    const ADMIN_IP = "83.233.185.102";
-    // Must be admin IP AND correct key
-    if (clientIp !== ADMIN_IP || (adminKey !== process.env.ADMIN_KEY && adminKey !== "GRABZZZ_ADMIN")) {
+    if (adminKey !== "APE INC") {
       return res.status(403).json({ message: "Unauthorized" });
     }
     broadcast({ type: "announcement", message });
@@ -465,9 +454,8 @@ export async function registerRoutes(
   });
 
   app.post("/api/jumpscare-global", (req, res) => {
-    const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress;
     const { adminKey } = req.body;
-    if (clientIp !== "83.233.185.102" || adminKey !== "GRABZZZ_ADMIN") {
+    if (adminKey !== "APE INC") {
       return res.status(403).json({ error: "Forbidden" });
     }
     broadcast({ type: "jumpscare" });
@@ -536,8 +524,7 @@ export async function registerRoutes(
 
   // List all bans (admin only)
   app.get("/api/bans", async (req, res) => {
-    const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress;
-    if (clientIp !== "83.233.185.102") return res.status(403).json({ message: "Unauthorized" });
+    if (req.query.adminKey !== "APE INC") return res.status(403).json({ message: "Unauthorized" });
     const bans = await storage.getBans();
     res.json(bans);
   });
