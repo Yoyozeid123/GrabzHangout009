@@ -31,10 +31,24 @@ const uploadVoice = storage_multer.single("voice");
 
 const onlineUsers = new Map<WebSocket, { username: string; room: string; ip: string }>();
 const rooms = new Map<string, { password?: string; created: Date; owner: string }>();
+const MAX_ROOMS = 30;
 
 // Initialize main room
 rooms.set("main", { password: "GRABZZZ", created: new Date(), owner: "Yofez009" });
-const typingUsers = new Set<string>();
+const typingUsers = new Map<string, Set<string>>(); // room -> Set<username>
+
+// Cleanup uploads older than 24h every hour
+setInterval(() => {
+  try {
+    const files = fs.readdirSync(UPLOAD_DIR);
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    for (const file of files) {
+      const fp = path.join(UPLOAD_DIR, file);
+      const stat = fs.statSync(fp);
+      if (stat.mtimeMs < cutoff) fs.unlinkSync(fp);
+    }
+  } catch {}
+}, 60 * 60 * 1000);
 
 // Simple NSFW keyword filter (no AWS needed)
 const nsfwKeywords = ['nsfw', 'porn', 'xxx', 'sex', 'nude', 'naked'];
@@ -84,16 +98,17 @@ export async function registerRoutes(
             });
           });
         } else if (msg.type === "typing" && msg.username) {
-          typingUsers.add(msg.username);
-          broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers) });
+          if (!typingUsers.has(currentRoom)) typingUsers.set(currentRoom, new Set());
+          typingUsers.get(currentRoom)!.add(msg.username);
+          broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers.get(currentRoom)!) });
           
           setTimeout(() => {
-            typingUsers.delete(msg.username);
-            broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers) });
+            typingUsers.get(currentRoom)?.delete(msg.username);
+            broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers.get(currentRoom) || []) });
           }, 3000);
         } else if (msg.type === "stopTyping" && msg.username) {
-          typingUsers.delete(msg.username);
-          broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers) });
+          typingUsers.get(currentRoom)?.delete(msg.username);
+          broadcastToRoom(currentRoom, { type: "typing", users: Array.from(typingUsers.get(currentRoom) || []) });
         } else if (msg.type === "confetti") {
           broadcastToRoom(currentRoom, { type: "confetti" });
         } else if (msg.type === "jumpscare") {
@@ -314,11 +329,12 @@ export async function registerRoutes(
     if (!name || typeof name !== "string") {
       return res.status(400).json({ message: "Room name required" });
     }
-    
     if (rooms.has(name)) {
       return res.status(400).json({ message: "Room already exists" });
     }
-    
+    if (rooms.size >= MAX_ROOMS) {
+      return res.status(400).json({ message: `Max ${MAX_ROOMS} rooms reached` });
+    }
     rooms.set(name, { password, created: new Date(), owner: owner || "unknown" });
     res.json({ success: true, name });
   });

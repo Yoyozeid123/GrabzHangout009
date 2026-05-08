@@ -30,25 +30,6 @@ function playBeep(freq = 880, duration = 0.08, vol = 0.15) {
   } catch {}
 }
 
-// Cursor trail
-function CursorTrail() {
-  useEffect(() => {
-    const dots: HTMLDivElement[] = [];
-    const handler = (e: MouseEvent) => {
-      const dot = document.createElement("div");
-      dot.className = "cursor-trail";
-      dot.style.left = e.clientX + "px";
-      dot.style.top = e.clientY + "px";
-      document.body.appendChild(dot);
-      dots.push(dot);
-      setTimeout(() => { dot.remove(); }, 500);
-    };
-    window.addEventListener("mousemove", handler);
-    return () => window.removeEventListener("mousemove", handler);
-  }, []);
-  return null;
-}
-
 function JumpscareVideo({ onClose }: { onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -119,6 +100,7 @@ export default function Home() {
   const [replyTo, setReplyTo] = useState<{ id: number; username: string; content: string } | null>(null);
   const [reactions, setReactions] = useState<Record<number, Record<string, string[]>>>({});
   const [activeReactionMsg, setActiveReactionMsg] = useState<number | null>(null);
+  const [announceText, setAnnounceText] = useState("");
   const REACTION_EMOJIS = ["🔥", "💀", "😂", "❤️", "👍", "😮"];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
@@ -645,7 +627,6 @@ export default function Home() {
       className={`min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black ${!showIntro && introStage === 'done' ? 'animate-fade-in' : ''}`}
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
-      <CursorTrail />
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
       {announcement && (
@@ -812,22 +793,23 @@ export default function Home() {
                 <div className="border-t-2 border-[#00ff00] pt-4">
                   <label className="text-[#ff6f61] block mb-2 font-bold">📢 GLOBAL ANNOUNCEMENT:</label>
                   <textarea
-                    id="announce-input"
                     className="w-full bg-black border-2 border-[#ff6f61] text-[#00ff00] p-2 text-sm resize-none"
                     rows={2}
                     placeholder="Type announcement..."
+                    value={announceText}
+                    onChange={(e) => setAnnounceText(e.target.value)}
                   />
                   <RetroButton
                     className="w-full mt-2 bg-[#ff6f61] text-black"
                     onClick={async () => {
-                      const msg = (document.getElementById("announce-input") as HTMLTextAreaElement).value.trim();
+                      const msg = announceText.trim();
                       if (!msg) return;
                       await fetch("/api/announce", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ message: msg, adminKey: "GRABZZZ_ADMIN" }),
                       });
-                      (document.getElementById("announce-input") as HTMLTextAreaElement).value = "";
+                      setAnnounceText("");
                     }}
                   >
                     SEND TO ALL
