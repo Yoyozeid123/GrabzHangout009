@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2 } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2, Reply, X } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
@@ -12,6 +12,42 @@ import bgGif from "@assets/BG_1771938204124.gif";
 import leftFrog from "@assets/frog-left_1771938204138.gif";
 import rightFrog from "@assets/frog-right_1771938204140.gif";
 import flames from "@assets/Grabzhangout009-flames_1771938204143.gif";
+
+// Retro sound effects via Web Audio API
+function playBeep(freq = 880, duration = 0.08, vol = 0.15) {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = "square";
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch {}
+}
+
+// Cursor trail
+function CursorTrail() {
+  useEffect(() => {
+    const dots: HTMLDivElement[] = [];
+    const handler = (e: MouseEvent) => {
+      const dot = document.createElement("div");
+      dot.className = "cursor-trail";
+      dot.style.left = e.clientX + "px";
+      dot.style.top = e.clientY + "px";
+      document.body.appendChild(dot);
+      dots.push(dot);
+      setTimeout(() => { dot.remove(); }, 500);
+    };
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, []);
+  return null;
+}
 
 function JumpscareVideo({ onClose }: { onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -80,6 +116,10 @@ export default function Home() {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [replyTo, setReplyTo] = useState<{ id: number; username: string; content: string } | null>(null);
+  const [reactions, setReactions] = useState<Record<number, Record<string, string[]>>>({});
+  const [activeReactionMsg, setActiveReactionMsg] = useState<number | null>(null);
+  const REACTION_EMOJIS = ["🔥", "💀", "😂", "❤️", "👍", "😮"];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -243,9 +283,10 @@ export default function Home() {
   const handleSendText = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || sendMessage.isPending || !username) return;
-
-    sendMessage.mutate({ type: "text", content: text.trim(), username }, {
-      onSuccess: () => setText("")
+    playBeep(660, 0.06);
+    const content = replyTo ? `↩ @${replyTo.username}: "${replyTo.content.slice(0, 40)}"  ${text.trim()}` : text.trim();
+    sendMessage.mutate({ type: "text", content, username }, {
+      onSuccess: () => { setText(""); setReplyTo(null); }
     });
   };
 
@@ -281,6 +322,7 @@ export default function Home() {
 
   const handleGifSelect = (gifUrl: string) => {
     if (!username) return;
+    playBeep(880, 0.06);
     sendMessage.mutate({ type: "gif", content: gifUrl, username });
   };
 
@@ -411,6 +453,20 @@ export default function Home() {
 
   const handleDownloadHistory = () => {
     window.location.href = '/api/messages/export';
+  };
+
+  const handleReact = (msgId: number, emoji: string) => {
+    if (!username) return;
+    playBeep(1100, 0.05);
+    setReactions(prev => {
+      const msgReactions = { ...(prev[msgId] || {}) };
+      const users = msgReactions[emoji] ? [...msgReactions[emoji]] : [];
+      const idx = users.indexOf(username);
+      if (idx >= 0) users.splice(idx, 1); else users.push(username);
+      if (users.length === 0) delete msgReactions[emoji]; else msgReactions[emoji] = users;
+      return { ...prev, [msgId]: msgReactions };
+    });
+    setActiveReactionMsg(null);
   };
 
   const handleWarningEnd = () => {
@@ -589,6 +645,7 @@ export default function Home() {
       className={`min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black ${!showIntro && introStage === 'done' ? 'animate-fade-in' : ''}`}
       style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
     >
+      <CursorTrail />
       <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
 
       {announcement && (
@@ -884,7 +941,7 @@ export default function Home() {
                 </div>
               ) : (
                 messages.map((msg, idx) => (
-                  <div key={msg.id || idx} className="text-xl break-words group relative flex items-start gap-2">
+                  <div key={msg.id || idx} className="text-xl break-words group relative flex items-start gap-2 animate-msg-in">
                     {userPfps[msg.username] && (
                       <img 
                         src={userPfps[msg.username]} 
@@ -893,11 +950,27 @@ export default function Home() {
                       />
                     )}
                     <div className="flex-1">
-                      <div>
+                      <div className="flex items-center gap-2">
                         <span className="text-[#ff6f61] mr-2">
                           [{msg.createdAt ? format(new Date(msg.createdAt), "HH:mm:ss") : "00:00:00"}]
                         </span>
                         <span className="text-[#00aa00] mr-2 font-bold">&lt;{msg.username || "Guest"}&gt;</span>
+                        {/* Reply button */}
+                        <button
+                          onClick={() => { playBeep(440, 0.05); setReplyTo({ id: msg.id, username: msg.username, content: msg.content }); }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff00] hover:text-[#ff6f61] ml-1"
+                          title="Reply"
+                        >
+                          <Reply className="w-4 h-4" />
+                        </button>
+                        {/* Reaction trigger */}
+                        <button
+                          onClick={() => setActiveReactionMsg(activeReactionMsg === msg.id ? null : msg.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff00] hover:text-[#ff6f61]"
+                          title="React"
+                        >
+                          <Smile className="w-4 h-4" />
+                        </button>
                       </div>
                     
                       {msg.type === "image" || msg.type === "gif" ? (
@@ -923,9 +996,7 @@ export default function Home() {
                             src={msg.content} 
                             controls 
                             className="max-w-xs border-2 border-[#00ff00] bg-black p-2 box-shadow-retro"
-                            style={{
-                              filter: 'hue-rotate(90deg) saturate(2)',
-                            }}
+                            style={{ filter: 'hue-rotate(90deg) saturate(2)' }}
                           />
                           {isAdmin && (
                             <button
@@ -950,6 +1021,33 @@ export default function Home() {
                           <Trash2 className="w-4 h-4 inline" />
                         </button>
                       )}
+
+                      {/* Reaction picker */}
+                      {activeReactionMsg === msg.id && (
+                        <div className="reaction-bar flex gap-1 mt-1 bg-black border-2 border-[#00ff00] p-1 w-fit">
+                          {REACTION_EMOJIS.map(emoji => (
+                            <button key={emoji} onClick={() => handleReact(msg.id, emoji)} className="text-lg hover:scale-125 transition-transform">
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Reactions display */}
+                      {reactions[msg.id] && Object.keys(reactions[msg.id]).length > 0 && (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {Object.entries(reactions[msg.id]).map(([emoji, users]) => (
+                            <button
+                              key={emoji}
+                              onClick={() => handleReact(msg.id, emoji)}
+                              className={`text-sm border px-1 py-0.5 transition-colors ${users.includes(username || '') ? 'border-[#ff6f61] bg-[#ff6f61]/20' : 'border-[#00ff00] bg-black/40'}`}
+                              title={users.join(", ")}
+                            >
+                              {emoji} {users.length}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
@@ -965,6 +1063,15 @@ export default function Home() {
               <div ref={messagesEndRef} />
             </div>
           </div>
+
+          {/* Reply preview */}
+          {replyTo && (
+            <div className="flex items-center gap-2 bg-black border-2 border-[#ff6f61] px-3 py-1 mb-1 text-sm">
+              <Reply className="w-4 h-4 text-[#ff6f61] flex-shrink-0" />
+              <span className="text-[#ff6f61] truncate">↩ @{replyTo.username}: "{replyTo.content.slice(0, 50)}"</span>
+              <button onClick={() => setReplyTo(null)} className="ml-auto text-[#ff6f61] hover:text-white flex-shrink-0"><X className="w-4 h-4" /></button>
+            </div>
+          )}
 
           <form onSubmit={handleSendText} className="flex gap-2 md:gap-4 items-stretch h-14 md:h-16">
             <RetroInput
@@ -1115,6 +1222,30 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Mobile bottom nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-black border-t-4 border-[#00ff00] flex items-center justify-around px-2 py-2">
+        <button onClick={() => setShowUserList(!showUserList)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
+          <Users className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
+          <span className="text-xs mt-0.5">USERS</span>
+        </button>
+        <button onClick={() => setShowGamesMenu(true)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
+          <Gamepad2 className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
+          <span className="text-xs mt-0.5">GAMES</span>
+        </button>
+        <button onClick={() => setShowGifPicker(true)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
+          <Smile className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
+          <span className="text-xs mt-0.5">GIF</span>
+        </button>
+        <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
+          <Upload className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
+          <span className="text-xs mt-0.5">UPLOAD</span>
+        </button>
+        <button onClick={() => setShowProfile(true)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
+          <Settings className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
+          <span className="text-xs mt-0.5">PROFILE</span>
+        </button>
+      </div>
     </div>
   );
 }
