@@ -314,6 +314,11 @@ export default function Home() {
         alert("❌ Wrong password for Yofez009!");
         return;
       }
+      const secret = prompt("🐒 yo what's the greatest company to ever exist on this planet fr fr no cap??");
+      if (secret?.trim().toUpperCase() !== "APE INC") {
+        alert("❌ WRONG ANSWER LMAOOO");
+        return;
+      }
     }
     
     setUsername(name);
