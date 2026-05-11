@@ -84,9 +84,10 @@ export async function registerRoutes(
         if (msg.type === "join" && msg.username) {
           currentRoom = msg.room || "main";
           
-          // Check if user is banned before allowing join
+          // Check if user is banned before allowing join (admin is always exempt)
+          const isAdmin = msg.username.toLowerCase() === "yofez009";
           storage.isBanned(msg.username, currentRoom, clientIp).then(isBanned => {
-            if (isBanned) {
+            if (isBanned && !isAdmin) {
               ws.send(JSON.stringify({ type: "banned", message: "You are banned from this room" }));
               ws.close();
               return;
