@@ -203,12 +203,12 @@ export default function Home() {
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [theme, setTheme] = useState<string>(() => localStorage.getItem("chatTheme") || "green");
 
-  const THEMES: Record<string, { primary: string; accent: string; label: string }> = {
-    green:  { primary: "#00ff00", accent: "#ff6f61", label: "🟢 CLASSIC" },
-    cyan:   { primary: "#00ffff", accent: "#ff00ff", label: "🔵 CYBER" },
-    gold:   { primary: "#ffd700", accent: "#ff4500", label: "🟡 GOLD" },
-    pink:   { primary: "#ff69b4", accent: "#00ffff", label: "🩷 VAPORWAVE" },
-    red:    { primary: "#ff3333", accent: "#ffff00", label: "🔴 DANGER" },
+  const THEMES: Record<string, { primary: string; accent: string; bg: string; label: string; emoji: string }> = {
+    green:    { primary: "#00ff41", accent: "#ff6f61", bg: "#0a0a0a", label: "Matrix",    emoji: "🟢" },
+    purple:   { primary: "#c084fc", accent: "#f472b6", bg: "#0d0010", label: "Synthwave", emoji: "🟣" },
+    amber:    { primary: "#fbbf24", accent: "#f97316", bg: "#0c0800", label: "Amber",     emoji: "🟡" },
+    ice:      { primary: "#67e8f9", accent: "#818cf8", bg: "#00080f", label: "Ice",       emoji: "🔵" },
+    blood:    { primary: "#f87171", accent: "#fb923c", bg: "#0f0000", label: "Blood",     emoji: "🔴" },
   };
   const T = THEMES[theme] || THEMES.green;
 
@@ -1467,40 +1467,6 @@ export default function Home() {
               SEND
             </RetroButton>
 
-            {(isAdmin || isRoomOwner) && (
-              <RetroButton 
-                type="button" 
-                onClick={triggerConfetti}
-                className="w-12 md:w-16 flex items-center justify-center text-yellow-400"
-                title="Confetti"
-              >
-                🎉
-              </RetroButton>
-            )}
-
-            {isAdmin && (
-              <>
-                <RetroButton 
-                  type="button" 
-                  onClick={triggerJumpscare}
-                  className="w-12 md:w-16 flex items-center justify-center text-red-500"
-                  title="Jumpscare (Room)"
-                >
-                  👻
-                </RetroButton>
-                <RetroButton 
-                  type="button" 
-                  onClick={() => {
-                    fetch('/api/jumpscare-global', { method: 'POST' });
-                  }}
-                  className="w-12 md:w-16 flex items-center justify-center text-red-500 animate-pulse"
-                  title="Global Jumpscare (All Rooms)"
-                >
-                  💀
-                </RetroButton>
-              </>
-            )}
-
             <RetroButton 
               type="button" 
               variant="secondary"
@@ -1579,17 +1545,27 @@ export default function Home() {
       {/* Theme Picker Modal */}
       {showThemePicker && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80" onClick={() => setShowThemePicker(false)}>
-          <div className="bg-black border-4 box-shadow-retro p-6 max-w-xs w-full mx-4" style={{ borderColor: T.primary }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold" style={{ color: T.primary }}>🎨 THEME</h2>
-              <button onClick={() => setShowThemePicker(false)} style={{ color: T.accent }}>✕</button>
+          <div className="bg-[#0a0a0a] border-2 p-6 max-w-xs w-full mx-4 rounded-sm shadow-2xl" style={{ borderColor: T.primary }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold tracking-widest" style={{ color: T.primary }}>THEME</h2>
+              <button onClick={() => setShowThemePicker(false)} className="opacity-50 hover:opacity-100" style={{ color: T.primary }}>✕</button>
             </div>
             <div className="space-y-2">
               {Object.entries(THEMES).map(([key, val]) => (
                 <button key={key} onClick={() => applyTheme(key)}
-                  className="w-full text-left px-3 py-2 border-2 font-bold transition-all"
-                  style={{ borderColor: val.primary, color: val.primary, background: theme === key ? val.primary + '22' : 'transparent' }}>
-                  {val.label} {theme === key && '✓'}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-sm border transition-all duration-150 text-left"
+                  style={{
+                    borderColor: theme === key ? val.primary : 'transparent',
+                    background: theme === key ? val.primary + '18' : val.bg,
+                    color: val.primary,
+                    boxShadow: theme === key ? `0 0 12px ${val.primary}44` : 'none',
+                  }}>
+                  <span className="text-xl">{val.emoji}</span>
+                  <span className="font-bold tracking-wider text-sm">{val.label.toUpperCase()}</span>
+                  <div className="ml-auto flex gap-1">
+                    <span className="w-3 h-3 rounded-full" style={{ background: val.primary }} />
+                    <span className="w-3 h-3 rounded-full" style={{ background: val.accent }} />
+                  </div>
                 </button>
               ))}
             </div>
