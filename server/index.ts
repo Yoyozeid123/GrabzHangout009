@@ -73,9 +73,12 @@ app.use((req, res, next) => {
         room TEXT NOT NULL DEFAULT 'main',
         created_at TIMESTAMP DEFAULT NOW()
       );
+      CREATE INDEX IF NOT EXISTS idx_messages_room_created ON messages(room, created_at DESC);
       CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
         pfp TEXT,
+        bio TEXT DEFAULT '',
+        message_count INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS banned_users (

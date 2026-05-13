@@ -23,16 +23,17 @@ export function useWebSocket(username: string | null, room: string = "main") {
   const wsRef = useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
+  const connect = useCallback(() => {
     if (!username) return;
-
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const ws = new WebSocket(`${protocol}//${window.location.host}/chat-ws`);
     wsRef.current = ws;
 
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "join", username, room }));
+      if (reconnectRef.current) { clearTimeout(reconnectRef.current); reconnectRef.current = null; }
     };
 
     ws.onmessage = (event) => {
@@ -44,13 +45,18 @@ export function useWebSocket(username: string | null, room: string = "main") {
         } else if (data.type === "typing") {
           setTypingUsers(data.users.filter((u: string) => u !== username));
         } else if (data.type === "newMessage") {
-          queryClient.invalidateQueries({ queryKey: ["/api/messages", room] });
+          // Append directly — no refetch
+          queryClient.setQueryData(["/api/messages", room], (old: any[]) =>
+            old ? [...old, data.message] : [data.message]
+          );
+        } else if (data.type === "deleteMessage") {
+          queryClient.setQueryData(["/api/messages", room], (old: any[]) =>
+            old ? old.filter((m: any) => m.id !== data.id) : []
+          );
         } else if (data.type === "confetti") {
           setConfettiTrigger(prev => prev + 1);
         } else if (data.type === "jumpscare") {
           setJumpscareTrigger(prev => prev + 1);
-        } else if (data.type === "deleteMessage") {
-          queryClient.invalidateQueries({ queryKey: ["/api/messages", room] });
         } else if (data.type === "game") {
           setGameData(data.data);
         } else if (data.type === "announcement") {
@@ -78,8 +84,21 @@ export function useWebSocket(username: string | null, room: string = "main") {
       }
     };
 
-    return () => { ws.close(); };
+    ws.onclose = () => {
+      // Auto-reconnect after 3s
+      reconnectRef.current = setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => ws.close();
   }, [username, room, queryClient]);
+
+  useEffect(() => {
+    connect();
+    return () => {
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      wsRef.current?.close();
+    };
+  }, [connect]);
 
   const sendTyping = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN && username) {
