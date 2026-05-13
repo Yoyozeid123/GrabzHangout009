@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { messages, users, bannedUsers, type InsertMessage, type Message, type User, type BannedUser } from "@shared/schema";
-import { desc, eq, lt, sql, and } from "drizzle-orm";
+import { desc, eq, lt, sql, and, gt } from "drizzle-orm";
 
 export interface IStorage {
   getMessages(room?: string): Promise<Message[]>;
@@ -23,13 +23,21 @@ export class DatabaseStorage implements IStorage {
     const msgs = await db.select().from(messages)
       .where(eq(messages.room, room))
       .orderBy(desc(messages.createdAt))
-      .limit(200);
+      .limit(20);
     return msgs.reverse();
   }
 
   async createMessage(insertMsg: InsertMessage): Promise<Message> {
     const [msg] = await db.insert(messages).values(insertMsg).returning();
     await this.incrementMessageCount(insertMsg.username);
+    // Keep only last 20 messages per room
+    const old = await db.select({ id: messages.id }).from(messages)
+      .where(eq(messages.room, insertMsg.room || "main"))
+      .orderBy(desc(messages.createdAt))
+      .offset(20);
+    if (old.length > 0) {
+      for (const o of old) await db.delete(messages).where(eq(messages.id, o.id));
+    }
     return msg;
   }
 
