@@ -317,16 +317,12 @@ export default function Home() {
 
   useEffect(() => {
     const fetchPfps = async () => {
-      const uniqueUsers = [...new Set(messages.map(m => m.username))];
-      for (const user of uniqueUsers) {
-        if (!userPfps[user]) {
-          const res = await fetch(`/api/users/${user}`);
-          const data = await res.json();
-          if (data.pfp) {
-            setUserPfps(prev => ({ ...prev, [user]: data.pfp }));
-          }
-        }
-      }
+      const uniqueUsers = [...new Set(messages.map(m => m.username))].filter(u => !userPfps[u]);
+      await Promise.all(uniqueUsers.map(async user => {
+        const res = await fetch(`/api/users/${user}`);
+        const data = await res.json();
+        if (data.pfp) setUserPfps(prev => ({ ...prev, [user]: data.pfp }));
+      }));
     };
     fetchPfps();
   }, [messages]);

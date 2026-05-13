@@ -51,15 +51,23 @@ export function useSendMessage(room: string = "main") {
       const data = await res.json();
       return parseWithLogging<any>(api.messages.create.responses[201], data, "messages.create");
     },
+    onMutate: async (message) => {
+      // Optimistic update — add message instantly
+      const key = [api.messages.list.path, room];
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any[]) => [
+        ...(old || []),
+        { ...message, id: Date.now(), createdAt: new Date().toISOString() }
+      ]);
+      return { prev };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.messages.list.path, room] });
     },
-    onError: (error) => {
-      toast({
-        title: "ERROR",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error, _vars, ctx: any) => {
+      if (ctx?.prev) queryClient.setQueryData([api.messages.list.path, room], ctx.prev);
+      toast({ title: "ERROR", description: error.message, variant: "destructive" });
     }
   });
 }
@@ -114,19 +122,19 @@ export function useDeleteMessage() {
         method: api.messages.delete.method,
         credentials: "include",
       });
-
       if (!res.ok) throw new Error("Failed to delete message");
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.messages.list.path] });
+    onMutate: async (id) => {
+      // Optimistic delete — remove instantly from UI
+      const keys = queryClient.getQueriesData({ queryKey: [api.messages.list.path] });
+      for (const [key, data] of keys) {
+        queryClient.setQueryData(key, (old: any[]) => (old || []).filter((m: any) => m.id !== id));
+      }
     },
     onError: (error) => {
-      toast({
-        title: "DELETE FAILED",
-        description: error.message,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: [api.messages.list.path] });
+      toast({ title: "DELETE FAILED", description: error.message, variant: "destructive" });
     }
   });
 }
