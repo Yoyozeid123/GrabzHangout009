@@ -466,8 +466,12 @@ export async function registerRoutes(
   // Ban user from room
   app.post("/api/ban-user", async (req, res) => {
     try {
-      const { username, room, bannedBy } = req.body;
+      const { username, room, bannedBy, adminKey } = req.body;
       
+      if (adminKey !== "APE INC") {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
       if (!username || !room || !bannedBy) {
         return res.status(400).json({ message: "Missing required fields" });
       }
