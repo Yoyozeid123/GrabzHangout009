@@ -534,6 +534,12 @@ export async function registerRoutes(
     res.json(bans);
   });
 
+  // Leaderboard — top users by message count
+  app.get("/api/leaderboard", async (req, res) => {
+    const top = await storage.getLeaderboard();
+    res.json(top);
+  });
+
   // Auto-delete old messages every hour
   setInterval(async () => {
     const deleted = await storage.deleteOldMessages();

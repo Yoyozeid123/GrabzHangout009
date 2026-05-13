@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2, Reply, X, Pin, MessageSquare, Maximize, Minimize, Swords } from "lucide-react";
+import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2, Reply, X, Pin, MessageSquare, Maximize, Minimize, Swords, Trophy, Palette } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
 import { useWebSocket, type UserStatus } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
@@ -198,6 +198,25 @@ export default function Home() {
   const [viewedUserData, setViewedUserData] = useState<any>(null);
   const [bioInput, setBioInput] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem("chatTheme") || "green");
+
+  const THEMES: Record<string, { primary: string; accent: string; label: string }> = {
+    green:  { primary: "#00ff00", accent: "#ff6f61", label: "🟢 CLASSIC" },
+    cyan:   { primary: "#00ffff", accent: "#ff00ff", label: "🔵 CYBER" },
+    gold:   { primary: "#ffd700", accent: "#ff4500", label: "🟡 GOLD" },
+    pink:   { primary: "#ff69b4", accent: "#00ffff", label: "🩷 VAPORWAVE" },
+    red:    { primary: "#ff3333", accent: "#ffff00", label: "🔴 DANGER" },
+  };
+  const T = THEMES[theme] || THEMES.green;
+
+  const applyTheme = (t: string) => {
+    setTheme(t);
+    localStorage.setItem("chatTheme", t);
+    setShowThemePicker(false);
+  };
   const REACTION_EMOJIS = ["🔥", "💀", "😂", "❤️", "👍", "😮"];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
@@ -272,6 +291,29 @@ export default function Home() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, [messages]);
+
+  // Mention notifications
+  const prevMsgCount = useRef(0);
+  useEffect(() => {
+    if (!username || messages.length <= prevMsgCount.current) {
+      prevMsgCount.current = messages.length;
+      return;
+    }
+    const newMsgs = messages.slice(prevMsgCount.current);
+    prevMsgCount.current = messages.length;
+    for (const msg of newMsgs) {
+      if (msg.username !== username && msg.content?.toLowerCase().includes(`@${username.toLowerCase()}`)) {
+        playBeep(1320, 0.15, 0.3);
+        if (Notification.permission === "granted") {
+          new Notification(`📣 ${msg.username} mentioned you`, { body: msg.content.slice(0, 80) });
+        } else if (Notification.permission !== "denied") {
+          Notification.requestPermission().then(p => {
+            if (p === "granted") new Notification(`📣 ${msg.username} mentioned you`, { body: msg.content.slice(0, 80) });
+          });
+        }
+      }
+    }
+  }, [messages, username]);
 
   useEffect(() => {
     const fetchPfps = async () => {
@@ -562,6 +604,13 @@ export default function Home() {
 
   const handleDownloadHistory = () => {
     window.location.href = '/api/messages/export';
+  };
+
+  const handleOpenLeaderboard = async () => {
+    const res = await fetch('/api/leaderboard');
+    const data = await res.json();
+    setLeaderboard(data);
+    setShowLeaderboard(true);
   };
 
   const handleReact = (msgId: number, emoji: string) => {
@@ -1109,8 +1158,8 @@ export default function Home() {
       <div className="w-full max-w-7xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-2 md:p-4 z-20 pb-20 md:pb-4">
         
         {/* User List Sidebar */}
-        <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 border-[#00ff00] box-shadow-retro flex-shrink-0 md:max-h-[400px]`}>
-          <div className="bg-[#00ff00] text-black px-3 py-1 flex items-center gap-2 font-bold">
+        <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 box-shadow-retro flex-shrink-0 md:max-h-[400px]`} style={{ borderColor: T.primary }}>
+          <div className="text-black px-3 py-1 flex items-center gap-2 font-bold" style={{ background: T.primary }}>
             <Users className="w-5 h-5 drop-shadow-[0_0_4px_#000]" />
             <span>ONLINE ({onlineCount})</span>
           </div>
@@ -1178,6 +1227,22 @@ export default function Home() {
               >
                 <Download className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
               </button>
+              <button
+                onClick={handleOpenLeaderboard}
+                className="group relative hover:text-[#ff6f61] transition-colors duration-150"
+                style={{ color: T.primary }}
+                title="Leaderboard"
+              >
+                <Trophy className="w-6 h-6 group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
+              </button>
+              <button
+                onClick={() => setShowThemePicker(true)}
+                className="group relative hover:text-[#ff6f61] transition-colors duration-150"
+                style={{ color: T.primary }}
+                title="Theme"
+              >
+                <Palette className="w-6 h-6 group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
+              </button>
               <button 
                 onClick={() => setShowProfile(true)}
                 className="group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
@@ -1221,9 +1286,9 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col bg-black/85 border-4 border-[#00ff00] box-shadow-retro mb-2 min-h-0">
+          <div className="flex-1 flex flex-col bg-black/85 border-4 box-shadow-retro mb-2 min-h-0" style={{ borderColor: T.primary }}>
             
-            <div className="bg-[#00ff00] text-black px-3 py-1 flex items-center gap-2 font-bold text-lg">
+            <div className="text-black px-3 py-1 flex items-center gap-2 font-bold text-lg" style={{ background: T.primary }}>
               <TerminalSquare className="w-5 h-5" />
               <span>C:\CHAT\MAIN.EXE</span>
             </div>
@@ -1488,6 +1553,54 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80" onClick={() => setShowLeaderboard(false)}>
+          <div className="bg-black border-4 box-shadow-retro p-6 max-w-sm w-full mx-4" style={{ borderColor: T.primary }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: T.primary }}>
+                <Trophy className="w-6 h-6" /> LEADERBOARD
+              </h2>
+              <button onClick={() => setShowLeaderboard(false)} style={{ color: T.accent }}>✕</button>
+            </div>
+            {leaderboard.length === 0 ? (
+              <p style={{ color: T.primary }} className="opacity-60">No data yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {leaderboard.map((u, i) => (
+                  <div key={u.username} className="flex items-center justify-between border px-3 py-2" style={{ borderColor: T.primary }}>
+                    <span style={{ color: T.accent }} className="font-bold w-6">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`}</span>
+                    <span style={{ color: T.primary }} className="flex-1 ml-2">{u.username}</span>
+                    <span style={{ color: T.primary }} className="font-bold">{u.messageCount} msgs</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Theme Picker Modal */}
+      {showThemePicker && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80" onClick={() => setShowThemePicker(false)}>
+          <div className="bg-black border-4 box-shadow-retro p-6 max-w-xs w-full mx-4" style={{ borderColor: T.primary }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold" style={{ color: T.primary }}>🎨 THEME</h2>
+              <button onClick={() => setShowThemePicker(false)} style={{ color: T.accent }}>✕</button>
+            </div>
+            <div className="space-y-2">
+              {Object.entries(THEMES).map(([key, val]) => (
+                <button key={key} onClick={() => applyTheme(key)}
+                  className="w-full text-left px-3 py-2 border-2 font-bold transition-all"
+                  style={{ borderColor: val.primary, color: val.primary, background: theme === key ? val.primary + '22' : 'transparent' }}>
+                  {val.label} {theme === key && '✓'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Games Menu Modal */}
       {showGamesMenu && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80" onClick={() => setShowGamesMenu(false)}>
@@ -1562,6 +1675,14 @@ export default function Home() {
         <button onClick={() => setShowProfile(true)} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
           <Settings className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />
           <span className="text-xs mt-0.5">PROFILE</span>
+        </button>
+        <button onClick={handleOpenLeaderboard} className="flex flex-col items-center hover:text-[#ff6f61] transition-colors" style={{ color: T.primary }}>
+          <Trophy className="w-6 h-6" />
+          <span className="text-xs mt-0.5">TOP</span>
+        </button>
+        <button onClick={() => setShowThemePicker(true)} className="flex flex-col items-center hover:text-[#ff6f61] transition-colors" style={{ color: T.primary }}>
+          <Palette className="w-6 h-6" />
+          <span className="text-xs mt-0.5">THEME</span>
         </button>
         <button onClick={toggleFullscreen} className="flex flex-col items-center text-[#00ff00] hover:text-[#ff6f61] transition-colors">
           {isFullscreen ? <Minimize className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" /> : <Maximize className="w-6 h-6 drop-shadow-[0_0_4px_#00ff00]" />}
