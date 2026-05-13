@@ -52,14 +52,6 @@ setInterval(() => {
   } catch {}
 }, 60 * 60 * 1000);
 
-// Simple NSFW keyword filter (no AWS needed)
-const nsfwKeywords = ['nsfw', 'porn', 'xxx', 'sex', 'nude', 'naked'];
-
-function containsNsfwKeywords(text: string): boolean {
-  const lower = text.toLowerCase();
-  return nsfwKeywords.some(keyword => lower.includes(keyword));
-}
-
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -217,10 +209,6 @@ export async function registerRoutes(
   app.post(api.messages.create.path, async (req, res) => {
     try {
       const input = api.messages.create.input.parse(req.body);
-      
-      if (input.type === "text" && containsNsfwKeywords(input.content)) {
-        return res.status(400).json({ message: "Content blocked: Inappropriate language detected" });
-      }
       
       // AI moderation — skip for admin
       if (input.type === "text" && input.username.toLowerCase() !== "yofez009") {
