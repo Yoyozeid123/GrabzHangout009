@@ -452,7 +452,8 @@ export default function Home() {
         body: JSON.stringify({ 
           username: userToBan, 
           room: roomName, 
-          bannedBy: username 
+          bannedBy: username,
+          adminKey: "APE INC"
         })
       });
       
@@ -941,7 +942,7 @@ export default function Home() {
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-black border-4 border-[#ff6f61] box-shadow-retro p-4 text-center">
           <p className="text-[#ff6f61] text-xl mb-3"><Swords className="inline w-5 h-5 mr-1" />{incomingChallenge.from} challenges you to {incomingChallenge.game.toUpperCase()}!</p>
           <div className="flex gap-2 justify-center">
-            <RetroButton onClick={() => acceptChallenge(incomingChallenge.from)}>ACCEPT ⚔️</RetroButton>
+            <RetroButton onClick={() => { acceptChallenge(incomingChallenge.from); setShowGamesMenu(true); }}>ACCEPT ⚔️</RetroButton>
             <RetroButton variant="secondary" onClick={() => declineChallenge(incomingChallenge.from)}>DECLINE</RetroButton>
           </div>
         </div>
@@ -951,7 +952,7 @@ export default function Home() {
       {challengeAccepted && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-black border-4 border-[#00ff00] box-shadow-retro p-4 text-center">
           <p className="text-[#00ff00] text-xl mb-2">⚔️ {challengeAccepted} accepted your challenge!</p>
-          <RetroButton onClick={() => setChallengeAccepted(null)}>OK</RetroButton>
+          <RetroButton onClick={() => { setChallengeAccepted(null); setShowGamesMenu(true); }}>PLAY ⚔️</RetroButton>
         </div>
       )}
 
