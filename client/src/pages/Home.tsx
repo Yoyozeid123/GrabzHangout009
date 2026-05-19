@@ -1591,27 +1591,6 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              {/* Charlie Klick */}
-              <div className="bg-black/60 border-2 border-[#00ff00] p-4 hover:border-[#ff6f61] transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="text-2xl text-[#00ff00] font-bold mb-1">🎮 CHARLIE KLICK</h3>
-                    <p className="text-[#00ff00] opacity-70 text-sm mb-2">Created by Jsuuuuu</p>
-                  </div>
-                </div>
-                <p className="text-[#00ff00] mb-3">Click your way to victory in this addictive clicker game!</p>
-                <a 
-                  href="https://charlie-klick.onrender.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-block"
-                >
-                  <RetroButton className="w-full">
-                    PLAY NOW →
-                  </RetroButton>
-                </a>
-              </div>
-
               {/* Add more games here */}
               <div className="text-center text-[#00ff00] opacity-50 py-8 border-2 border-dashed border-[#00ff00]">
                 <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50 drop-shadow-[0_0_6px_#00ff00]" />
