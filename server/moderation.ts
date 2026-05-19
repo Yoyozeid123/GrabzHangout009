@@ -50,9 +50,10 @@ export async function moderateMessage(username: string, content: string): Promis
 > {
   // Only check spam
   if (checkSpam(username)) {
-    const expiresAt = new Date(Date.now() + 60 * 1000);
-    await db.insert(moderationActions).values({ username, action: 'mute', reason: 'Spamming', expiresAt });
-    return { action: 'mute', reason: 'Spamming — muted for 1 minute' };
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await db.insert(moderationActions).values({ username, action: 'ban', reason: 'Spamming', expiresAt });
+    spamTracker.delete(username); // reset tracker after ban
+    return { action: 'ban', reason: 'Spamming — banned for 1 hour' };
   }
   return null;
 }
