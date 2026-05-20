@@ -156,7 +156,7 @@ function BanList() {
 }
 
 function RngRoll({ content }: { content: string }) {
-  const [, user, result, max, nat] = content.replace("🎲 ROLL:", "").split(":");
+  const [user, result, max, nat] = content.replace("🎲 ROLL:", "").split(":");
   const pct = Math.round((parseInt(result) / parseInt(max)) * 100);
   const isNat = nat === "NAT";
   return (
@@ -171,7 +171,7 @@ function RngRoll({ content }: { content: string }) {
 }
 
 function RngFlip({ content }: { content: string }) {
-  const [, user, result] = content.replace("🪙 FLIP:", "").split(":");
+  const [user, result] = content.replace("🪙 FLIP:", "").split(":");
   const isHeads = result === "HEADS";
   return (
     <span className={`inline-flex items-center gap-2 px-3 py-1 border-2 font-bold ${isHeads ? "border-yellow-400 text-yellow-300 bg-yellow-900/30" : "border-gray-400 text-gray-300 bg-gray-900/30"}`}>
@@ -182,7 +182,7 @@ function RngFlip({ content }: { content: string }) {
 }
 
 function RngRoulette({ content }: { content: string }) {
-  const [, user, number, color] = content.replace("🎰 ROULETTE:", "").split(":");
+  const [user, number, color] = content.replace("🎰 ROULETTE:", "").split(":");
   const colorMap: Record<string, string> = {
     RED: "border-red-500 text-red-400 bg-red-900/30",
     BLACK: "border-gray-500 text-gray-300 bg-gray-900/30",
@@ -235,6 +235,38 @@ function getRngCounts(user: string) {
 function bumpRng(user: string, key: "rolls" | "flips" | "roulettes") {
   const k = `rng_${key}_${user}`;
   localStorage.setItem(k, String(parseInt(localStorage.getItem(k) || "0") + 1));
+}
+
+// RNG result storage — keeps last 50 results per user, plus tracks rarest hits for leaderboard
+interface RngResult { type: "roll"|"coinflip"|"roulette"; user: string; result: string; rare: boolean; label: string; ts: number; }
+
+function saveRngResult(r: RngResult) {
+  // Personal history
+  const histKey = `rng_history_${r.user}`;
+  const hist: RngResult[] = JSON.parse(localStorage.getItem(histKey) || "[]");
+  hist.unshift(r);
+  localStorage.setItem(histKey, JSON.stringify(hist.slice(0, 50)));
+  // Rarity leaderboard — store best rare hit per user
+  if (r.rare) {
+    const lb: Record<string, RngResult> = JSON.parse(localStorage.getItem("rng_leaderboard") || "{}");
+    if (!lb[r.user]) lb[r.user] = r;
+    // Prefer green roulette > nat roll > heads (arbitrary rarity order)
+    const rarityScore = (x: RngResult) => x.type === "roulette" ? 3 : x.type === "roll" ? 2 : 1;
+    if (rarityScore(r) >= rarityScore(lb[r.user])) lb[r.user] = r;
+    localStorage.setItem("rng_leaderboard", JSON.stringify(lb));
+  }
+}
+
+function getRngHistory(user: string): RngResult[] {
+  return JSON.parse(localStorage.getItem(`rng_history_${user}`) || "[]");
+}
+
+function getRngLeaderboard(): RngResult[] {
+  const lb: Record<string, RngResult> = JSON.parse(localStorage.getItem("rng_leaderboard") || "{}");
+  return Object.values(lb).sort((a, b) => {
+    const score = (x: RngResult) => x.type === "roulette" ? 3 : x.type === "roll" ? 2 : 1;
+    return score(b) - score(a);
+  });
 }
 function getRngBadge(user: string): string | null {
   const { rolls, flips, roulettes } = getRngCounts(user);
@@ -359,12 +391,8 @@ const MessageList = React.memo(function MessageList({
                     </button>
                   )}
                 </div>
-              ) : msg.content.startsWith("🎲 ROLL:") ? (
-                <RngRoll content={msg.content} />
-              ) : msg.content.startsWith("🪙 FLIP:") ? (
-                <RngFlip content={msg.content} />
-              ) : msg.content.startsWith("🎰 ROULETTE:") ? (
-                <RngRoulette content={msg.content} />
+              ) : msg.content.startsWith("🎲 ROLL:") || msg.content.startsWith("🪙 FLIP:") || msg.content.startsWith("🎰 ROULETTE:") ? (
+                null // legacy RNG messages — hidden, use RNG panel instead
               ) : (
                 <span className={`chat-bubble mt-1 ${msg.username === username ? "chat-bubble-own" : "chat-bubble-other"}`} style={{ color: primaryColor }}>
                   {msg.content}
@@ -698,30 +726,10 @@ export default function Home() {
     // RNG slash commands
     const trimmed = text.trim();
     if (trimmed.startsWith("/roll") || trimmed.startsWith("/coinflip") || trimmed.startsWith("/roulette")) {
-      let rngContent = "";
-      if (trimmed.startsWith("/roll")) {
-        const parts = trimmed.split(" ");
-        const max = parseInt(parts[1]) || 6;
-        const clamped = Math.min(Math.max(max, 2), 1000000);
-        const result = Math.floor(Math.random() * clamped) + 1;
-        const isNat = result === clamped;
-        rngContent = `🎲 ROLL:${username}:${result}:${clamped}:${isNat ? "NAT" : ""}`;
-        bumpRng(username, "rolls");
-      } else if (trimmed.startsWith("/coinflip")) {
-        const result = Math.random() < 0.5 ? "HEADS" : "TAILS";
-        rngContent = `🪙 FLIP:${username}:${result}`;
-        bumpRng(username, "flips");
-      } else if (trimmed.startsWith("/roulette")) {
-        const numbers = Array.from({ length: 37 }, (_, i) => i); // 0-36
-        const result = numbers[Math.floor(Math.random() * numbers.length)];
-        const red = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
-        const color = result === 0 ? "GREEN" : red.includes(result) ? "RED" : "BLACK";
-        rngContent = `🎰 ROULETTE:${username}:${result}:${color}`;
-        bumpRng(username, "roulettes");
-      }
-      sendMessage.mutate({ type: "text", content: rngContent, username }, {
-        onSuccess: () => { setText(""); setReplyTo(null); }
-      });
+      // Redirect to RNG panel — no more chat spam
+      const type = trimmed.startsWith("/roll") ? "roll" : trimmed.startsWith("/coinflip") ? "coinflip" : "roulette";
+      fireRng(type);
+      setText("");
       return;
     }
 
@@ -765,24 +773,23 @@ export default function Home() {
   const fireRng = (type: "roll" | "coinflip" | "roulette") => {
     if (!username) return;
     playBeep(880, 0.08);
-    let rngContent = "";
     if (type === "roll") {
       const result = Math.floor(Math.random() * 6) + 1;
-      rngContent = `🎲 ROLL:${username}:${result}:6:${result === 6 ? "NAT" : ""}`;
+      const isNat = result === 6;
       bumpRng(username, "rolls");
+      saveRngResult({ type: "roll", user: username, result: String(result), rare: isNat, label: isNat ? "★ NAT 6!" : `Rolled ${result}/6`, ts: Date.now() });
     } else if (type === "coinflip") {
       const result = Math.random() < 0.5 ? "HEADS" : "TAILS";
-      rngContent = `🪙 FLIP:${username}:${result}`;
       bumpRng(username, "flips");
+      saveRngResult({ type: "coinflip", user: username, result, rare: false, label: `Flipped ${result}`, ts: Date.now() });
     } else {
       const result = Math.floor(Math.random() * 37);
       const red = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
       const color = result === 0 ? "GREEN" : red.includes(result) ? "RED" : "BLACK";
-      rngContent = `🎰 ROULETTE:${username}:${result}:${color}`;
       bumpRng(username, "roulettes");
+      saveRngResult({ type: "roulette", user: username, result: `${result} ${color}`, rare: color === "GREEN", label: color === "GREEN" ? `★ GREEN ${result}!` : `${color} ${result}`, ts: Date.now() });
     }
-    sendMessage.mutate({ type: "text", content: rngContent, username });
-    setShowRngMenu(false);
+    setShowRngMenu(true); // open panel to show result
   };
 
   const handleGifSelect = (gifUrl: string) => {
@@ -1588,14 +1595,8 @@ export default function Home() {
                   : <Maximize className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00]" />}
               </button>
               {/* RNG buttons */}
-              <button onClick={() => fireRng("roll")} title="Roll d6" className="hover:scale-125 transition-transform text-lg leading-none" style={{ color: T.primary }}>
+              <button onClick={() => setShowRngMenu(true)} title="RNG Panel" className="hover:scale-125 transition-transform text-lg leading-none" style={{ color: T.primary }}>
                 <DiceIcon />
-              </button>
-              <button onClick={() => fireRng("coinflip")} title="Coin flip" className="hover:scale-125 transition-transform text-lg leading-none" style={{ color: T.primary }}>
-                <CoinIcon />
-              </button>
-              <button onClick={() => fireRng("roulette")} title="Roulette" className="hover:scale-125 transition-transform text-lg leading-none" style={{ color: T.primary }}>
-                <RouletteIcon />
               </button>
             </div>
           </header>
@@ -1822,6 +1823,62 @@ export default function Home() {
                   <p className="font-bold text-xl" style={{ color: T.primary }}>PONG PVP</p>
                   <p className="text-sm opacity-60" style={{ color: T.primary }}>Challenge someone via their profile, or play solo. First to 7 wins.</p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RNG Panel */}
+      {showRngMenu && username && (
+        <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowRngMenu(false)}>
+          <div className="bg-black border-4 max-w-md w-full max-h-[80vh] flex flex-col" style={{ borderColor: T.primary }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-2 border-b-2" style={{ borderColor: T.primary, background: T.primary + "22" }}>
+              <span className="font-bold tracking-widest text-lg" style={{ color: T.primary }}>RNG PANEL</span>
+              <button onClick={() => setShowRngMenu(false)} style={{ color: T.primary }}>✕</button>
+            </div>
+            {/* Roll buttons */}
+            <div className="flex gap-2 p-3 border-b-2" style={{ borderColor: T.primary + "44" }}>
+              <button onClick={() => fireRng("roll")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity" style={{ borderColor: T.primary, color: T.primary }}>
+                <DiceIcon /> ROLL D6
+              </button>
+              <button onClick={() => fireRng("coinflip")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity" style={{ borderColor: T.primary, color: T.primary }}>
+                <CoinIcon /> FLIP
+              </button>
+              <button onClick={() => fireRng("roulette")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity" style={{ borderColor: T.primary, color: T.primary }}>
+                <RouletteIcon /> SPIN
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {/* Latest result */}
+              {(() => { const h = getRngHistory(username); return h[0] ? (
+                <div className={`mx-3 mt-3 p-3 border-2 text-center font-bold text-xl ${h[0].rare ? "border-yellow-400 text-yellow-300 animate-pulse" : ""}`} style={h[0].rare ? {} : { borderColor: T.primary, color: T.primary }}>
+                  {h[0].label}
+                </div>
+              ) : null; })()}
+              {/* Rarity leaderboard */}
+              <div className="px-3 pt-3">
+                <p className="text-xs font-bold tracking-widest mb-2 opacity-60" style={{ color: T.primary }}>★ RARITY LEADERBOARD</p>
+                {getRngLeaderboard().length === 0 ? (
+                  <p className="text-xs opacity-40" style={{ color: T.primary }}>No rare hits yet.</p>
+                ) : getRngLeaderboard().map((r, i) => (
+                  <div key={r.user} className="flex items-center gap-2 py-1 border-b" style={{ borderColor: T.primary + "22" }}>
+                    <span className="w-5 text-xs font-bold" style={{ color: T.accent }}>{i + 1}.</span>
+                    <span className="font-bold text-sm" style={{ color: T.primary }}>{r.user}</span>
+                    <span className="ml-auto text-xs font-bold text-yellow-300">{r.label}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Personal history */}
+              <div className="px-3 pt-3 pb-3">
+                <p className="text-xs font-bold tracking-widest mb-2 opacity-60" style={{ color: T.primary }}>YOUR HISTORY</p>
+                {getRngHistory(username).slice(0, 20).map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 py-0.5 text-xs" style={{ color: r.rare ? "#fbbf24" : T.primary + "99" }}>
+                    <span>{r.rare ? "★" : "·"}</span>
+                    <span>{r.label}</span>
+                    <span className="ml-auto opacity-40">{new Date(r.ts).toLocaleTimeString()}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
