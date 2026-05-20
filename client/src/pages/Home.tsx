@@ -268,14 +268,14 @@ function getRngLeaderboard(): RngResult[] {
     return score(b) - score(a);
   });
 }
-function getRngBadge(user: string): string | null {
+function getRngBadge(user: string): { tier: number; label: string; color: string } | null {
   const { rolls, flips, roulettes } = getRngCounts(user);
   const total = rolls + flips + roulettes;
-  if (total >= 500) return "GAMBLER";
-  if (total >= 100) return "HIGH ROLLER";
-  if (total >= 50)  return "DICE LORD";
-  if (total >= 20)  return "LUCKY";
-  if (total >= 5)   return "ROLLER";
+  if (total >= 500) return { tier: 5, label: "GAMBLER",     color: "#f43f5e" };
+  if (total >= 100) return { tier: 4, label: "HIGH ROLLER", color: "#a855f7" };
+  if (total >= 50)  return { tier: 3, label: "DICE LORD",   color: "#3b82f6" };
+  if (total >= 20)  return { tier: 2, label: "LUCKY",       color: "#22c55e" };
+  if (total >= 5)   return { tier: 1, label: "ROLLER",      color: "#fbbf24" };
   return null;
 }
 
@@ -310,6 +310,34 @@ function RouletteIcon() {
       <line x1="3" y1="11" x2="8" y2="11" />
       <line x1="14" y1="11" x2="19" y2="11" />
     </svg>
+  );
+}
+
+// Stacked pip badge — each tier adds another diamond pip
+function RngBadge({ tier, label, color }: { tier: number; label: string; color: string }) {
+  return (
+    <span className="inline-flex items-center gap-0.5 mr-1" title={label}>
+      {/* Stacked diamond pips */}
+      <span className="inline-flex flex-col items-center gap-px mr-0.5">
+        {Array.from({ length: tier }).map((_, i) => (
+          <svg key={i} width="7" height="7" viewBox="0 0 7 7">
+            <polygon points="3.5,0 7,3.5 3.5,7 0,3.5" fill={color} />
+          </svg>
+        ))}
+      </span>
+      {/* Label with angled clip */}
+      <span
+        className="text-[9px] font-black tracking-widest px-1.5 py-0.5 leading-none"
+        style={{
+          color: "#000",
+          background: color,
+          clipPath: "polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)",
+          textShadow: "none",
+        }}
+      >
+        {label}
+      </span>
+    </span>
   );
 }
 
@@ -353,9 +381,7 @@ const MessageList = React.memo(function MessageList({
                 </span>
                 <span className="text-[#00aa00] mr-2 font-bold">&lt;{msg.username || "Guest"}&gt;</span>
                 {rngBadge && (
-                  <span className="text-[10px] font-bold px-1 py-0.5 border mr-1 tracking-widest" style={{ borderColor: "#fbbf24", color: "#fbbf24", background: "#fbbf2415" }}>
-                    {rngBadge}
-                  </span>
+                  <RngBadge tier={rngBadge.tier} label={rngBadge.label} color={rngBadge.color} />
                 )}
                 <button onClick={() => { playBeep(440, 0.05); onReply(msg); }} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff00] hover:text-[#ff6f61] ml-1" title="Reply">
                   <Reply className="w-4 h-4" />

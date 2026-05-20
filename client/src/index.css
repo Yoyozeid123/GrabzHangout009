@@ -775,43 +775,42 @@
 .chat-bubble {
   position: relative;
   display: inline-block;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.75);
-  border: 2px solid currentColor;
-  /* pixel-art corners via clip-path */
-  clip-path: polygon(
-    4px 0%, calc(100% - 4px) 0%,
-    100% 4px, 100% calc(100% - 4px),
-    calc(100% - 4px) 100%, 4px 100%,
-    0% calc(100% - 4px), 0% 4px
+  padding: 5px 14px 5px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1.5px solid currentColor;
+  border-radius: 0;
+  box-shadow: 0 0 8px currentColor, inset 0 0 12px rgba(0,0,0,0.8);
+  backdrop-filter: blur(6px);
+  /* scanline overlay */
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.15) 2px,
+    rgba(0,0,0,0.15) 4px
   );
-  backdrop-filter: blur(4px);
-  transition: filter 0.15s;
+  transition: box-shadow 0.15s;
 }
 .chat-bubble:hover {
-  filter: brightness(1.2);
+  box-shadow: 0 0 16px currentColor, inset 0 0 12px rgba(0,0,0,0.6);
 }
-/* tail pointing left (own messages) */
+/* tail — own messages (left side) */
 .chat-bubble-own::before {
   content: '';
   position: absolute;
-  left: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  background: currentColor;
-  clip-path: polygon(100% 0%, 0% 50%, 100% 100%);
+  left: -7px;
+  top: 10px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 7px solid currentColor;
 }
-/* tail pointing right (others) */
+/* tail — others (right side) */
 .chat-bubble-other::after {
   content: '';
   position: absolute;
-  right: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  background: currentColor;
-  clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+  right: -7px;
+  top: 10px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid currentColor;
 }
