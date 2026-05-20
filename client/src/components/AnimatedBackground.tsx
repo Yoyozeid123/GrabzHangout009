@@ -28,7 +28,7 @@ const MatrixRain = React.memo(() => (
     {RAIN_COLS.map((col, i) => (
       <div
         key={i}
-        className="absolute text-green-400 text-xs font-mono opacity-40 select-none"
+        className="absolute text-green-400 text-xs font-mono opacity-70 select-none"
         style={{
           left: col.left,
           top: '-100vh',
@@ -50,8 +50,8 @@ const SynthwaveGrid = React.memo(() => (
       className="absolute bottom-0 left-0 w-full h-1/2"
       style={{
         background: `
-          repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(139,92,246,0.12) 20px, rgba(139,92,246,0.12) 21px),
-          repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(244,114,182,0.12) 20px, rgba(244,114,182,0.12) 21px)
+          repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(139,92,246,0.35) 20px, rgba(139,92,246,0.35) 21px),
+          repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(244,114,182,0.35) 20px, rgba(244,114,182,0.35) 21px)
         `,
         transform: 'perspective(500px) rotateX(60deg)',
         transformOrigin: 'bottom',
@@ -70,7 +70,7 @@ const FloatingOrbs = React.memo(({ color }: { color: string }) => (
         style={{
           width: orb.width,
           height: orb.height,
-          background: `radial-gradient(circle, ${color}55, transparent)`,
+          background: `radial-gradient(circle, ${color}99, transparent)`,
           left: orb.left,
           top: orb.top,
           animation: `orbFloat ${orb.duration} ease-in-out infinite`,

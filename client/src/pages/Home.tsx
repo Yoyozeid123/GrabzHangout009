@@ -1269,48 +1269,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* DM Panel */}
-      {showDMs && (
-        <div className="fixed inset-y-0 right-0 z-[150] w-full max-w-sm bg-black border-l-4 border-[#00ff00] flex flex-col" onClick={e => e.stopPropagation()}>
-          <div className="bg-[#00ff00] text-black px-3 py-2 flex items-center justify-between font-bold">
-            <span>💬 DIRECT MESSAGES</span>
-            <button onClick={() => setShowDMs(false)}><X className="w-5 h-5" /></button>
-          </div>
-          {/* User list to DM */}
-          {!dmTarget ? (
-            <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
-              <p className="text-[#00ff00] opacity-70 text-sm mb-2">Select a user to message:</p>
-              {onlineUsers.filter(u => u !== username).map(u => (
-                <button key={u} onClick={() => setDmTarget(u)} className="w-full text-left text-[#00ff00] border border-[#00ff00] px-3 py-2 hover:bg-[#00ff00] hover:text-black transition-colors flex items-center gap-2">
-                  <span className={`text-xs ${userStatuses[u] === 'busy' ? 'text-red-400' : userStatuses[u] === 'afk' ? 'text-yellow-400' : 'text-green-400'}`}>●</span>
-                  {u}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col">
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-[#00ff00]">
-                <button onClick={() => setDmTarget(null)} className="text-[#ff6f61]"><X className="w-4 h-4" /></button>
-                <span className="text-[#00ff00] font-bold">@{dmTarget}</span>
-              </div>
-              <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
-                {dms.filter(d => d.from === dmTarget || (d.self && d.to === dmTarget)).map((d, i) => (
-                  <div key={i} className={`text-sm ${d.self ? 'text-right' : 'text-left'}`}>
-                    <span className={`inline-block px-2 py-1 border ${d.self ? 'border-[#ff6f61] text-[#ff6f61]' : 'border-[#00ff00] text-[#00ff00]'}`}>
-                      {d.content}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <form onSubmit={handleSendDM} className="flex gap-2 p-2 border-t border-[#00ff00]">
-                <RetroInput value={dmText} onChange={e => setDmText(e.target.value)} placeholder="> MESSAGE..." className="flex-1" />
-                <RetroButton type="submit" disabled={!dmText.trim()}><Send className="w-4 h-4" /></RetroButton>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* User profile viewer */}
       {showUserProfile && viewedUserData && (
         <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowUserProfile(null)}>
@@ -1468,7 +1426,7 @@ export default function Home() {
       <div className="w-full max-w-7xl mx-auto h-screen flex flex-col md:flex-row gap-4 p-2 md:p-4 z-20 pb-20 md:pb-4">
         
         {/* User List Sidebar */}
-        <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/85 border-4 box-shadow-retro flex-shrink-0 md:max-h-[400px]`} style={{ borderColor: T.primary }}>
+        <div className={`${showUserList ? 'block' : 'hidden'} md:block w-full md:w-64 bg-black/40 border-4 box-shadow-retro flex-shrink-0 md:max-h-[400px]`} style={{ borderColor: T.primary }}>
           <div className="text-black px-3 py-1 flex items-center gap-2 font-bold" style={{ background: T.primary }}>
             <Users className="w-5 h-5 drop-shadow-[0_0_4px_#000]" />
             <span>ONLINE ({onlineCount})</span>
@@ -1514,7 +1472,7 @@ export default function Home() {
                 alt="Dancing Frog" 
               />
             </div>
-            <div className="mt-2 text-xl md:text-2xl text-shadow-neon bg-black/60 px-4 py-1 border border-[#00ff00] flex items-center gap-3 self-start neon-border holographic">
+            <div className="mt-2 text-xl md:text-2xl text-shadow-neon bg-black/25 px-4 py-1 border border-[#00ff00] flex items-center gap-3 self-start neon-border holographic">
               <span className="blinking-cursor glitch-text" data-text={`EST. 1999 :: ${onlineCount} USERS ONLINE`}>EST. 1999 :: {onlineCount} USERS ONLINE</span>
               <button 
                 onClick={() => setShowUserList(!showUserList)}
@@ -1529,13 +1487,6 @@ export default function Home() {
                 title="Games"
               >
                 <Gamepad2 className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] group-hover:scale-110 transition-all duration-150" />
-              </button>
-              <button 
-                onClick={handleDownloadHistory}
-                className="group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
-                title="Download Chat History"
-              >
-                <Download className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
               </button>
               <button
                 onClick={handleOpenLeaderboard}
@@ -1559,13 +1510,6 @@ export default function Home() {
                 title="Profile Settings"
               >
                 <Settings className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] group-hover:rotate-45 transition-all duration-300" />
-              </button>
-              <button
-                onClick={() => setShowDMs(true)}
-                className="group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
-                title="Direct Messages"
-              >
-                <MessageSquare className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00] group-hover:drop-shadow-[0_0_8px_#ff6f61] transition-all duration-150" />
               </button>
               {/* Fullscreen — mobile only */}
               <button
@@ -1600,7 +1544,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col bg-black/85 border-4 box-shadow-retro mb-2 min-h-0 neon-border" style={{ borderColor: T.primary }}>
+          <div className="flex-1 flex flex-col bg-black/40 border-4 box-shadow-retro mb-2 min-h-0 neon-border" style={{ borderColor: T.primary }}>
             
             <div className="text-black px-3 py-1 flex items-center gap-2 font-bold text-lg holographic" style={{ background: T.primary }}>
               <TerminalSquare className="w-5 h-5" />
