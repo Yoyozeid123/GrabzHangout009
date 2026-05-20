@@ -770,3 +770,48 @@
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-30px) scale(1.1); }
 }
+
+/* ── Custom chat bubbles ── */
+.chat-bubble {
+  position: relative;
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid currentColor;
+  /* pixel-art corners via clip-path */
+  clip-path: polygon(
+    4px 0%, calc(100% - 4px) 0%,
+    100% 4px, 100% calc(100% - 4px),
+    calc(100% - 4px) 100%, 4px 100%,
+    0% calc(100% - 4px), 0% 4px
+  );
+  backdrop-filter: blur(4px);
+  transition: filter 0.15s;
+}
+.chat-bubble:hover {
+  filter: brightness(1.2);
+}
+/* tail pointing left (own messages) */
+.chat-bubble-own::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  clip-path: polygon(100% 0%, 0% 50%, 100% 100%);
+}
+/* tail pointing right (others) */
+.chat-bubble-other::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+}

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { format } from "date-fns";
 import { Image as ImageIcon, Send, TerminalSquare, Users, Smile, Trash2, Mic, MicOff, Settings, LogOut, Upload, Download, Gamepad2, Reply, X, Pin, MessageSquare, Maximize, Minimize, Swords, Trophy, Palette } from "lucide-react";
 import { useMessages, useSendMessage, useUploadImage, useDeleteMessage } from "@/hooks/use-messages";
@@ -7,6 +8,7 @@ import { RetroButton } from "@/components/RetroButton";
 import { RetroInput } from "@/components/RetroInput";
 import { GifPicker } from "@/components/GifPicker";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { PongGame } from "@/components/PongGame";
 
 // Static Assets mapped via Vite aliases
 import bgGif from "@assets/BG_1771938204124.gif";
@@ -196,6 +198,215 @@ function RngRoulette({ content }: { content: string }) {
   );
 }
 
+// Stable random values — computed once, never on re-render
+const PARTICLE_DATA = Array.from({ length: 15 }, (_, i) => ({
+  left: `${(i * 6.7 + 3) % 100}%`,
+  delay: `${(i * 1.3) % 20}s`,
+  duration: `${15 + (i * 0.7) % 10}s`,
+}));
+
+function FloatingParticles({ color }: { color: string }) {
+  return (
+    <div className="theme-particles">
+      {PARTICLE_DATA.map((p, i) => (
+        <div key={i} className="particle" style={{ left: p.left, color, animationDelay: p.delay, animationDuration: p.duration }} />
+      ))}
+    </div>
+  );
+}
+
+function ThemeEffects({ theme }: { theme: string }) {
+  switch (theme) {
+    case 'green': return <div className="cyber-grid" />;
+    case 'purple': return <div className="synthwave-sun" />;
+    case 'blood': return <div className="lightning" />;
+    default: return null;
+  }
+}
+
+// RNG badge helpers
+function getRngCounts(user: string) {
+  return {
+    rolls: parseInt(localStorage.getItem(`rng_rolls_${user}`) || "0"),
+    flips: parseInt(localStorage.getItem(`rng_flips_${user}`) || "0"),
+    roulettes: parseInt(localStorage.getItem(`rng_roulettes_${user}`) || "0"),
+  };
+}
+function bumpRng(user: string, key: "rolls" | "flips" | "roulettes") {
+  const k = `rng_${key}_${user}`;
+  localStorage.setItem(k, String(parseInt(localStorage.getItem(k) || "0") + 1));
+}
+function getRngBadge(user: string): string | null {
+  const { rolls, flips, roulettes } = getRngCounts(user);
+  const total = rolls + flips + roulettes;
+  if (total >= 500) return "GAMBLER";
+  if (total >= 100) return "HIGH ROLLER";
+  if (total >= 50)  return "DICE LORD";
+  if (total >= 20)  return "LUCKY";
+  if (total >= 5)   return "ROLLER";
+  return null;
+}
+
+// Custom SVG icons for RNG toolbar buttons
+function DiceIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="2" y="2" width="18" height="18" rx="3" />
+      <circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="7" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="11" cy="11" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="7" cy="15" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="15" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+function CoinIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="11" cy="11" r="8" />
+      <text x="11" y="15" textAnchor="middle" fontSize="9" fill="currentColor" stroke="none" fontFamily="monospace" fontWeight="bold">$</text>
+    </svg>
+  );
+}
+function RouletteIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="11" cy="11" r="8" />
+      <circle cx="11" cy="11" r="3" />
+      <line x1="11" y1="3" x2="11" y2="8" />
+      <line x1="11" y1="14" x2="11" y2="19" />
+      <line x1="3" y1="11" x2="8" y2="11" />
+      <line x1="14" y1="11" x2="19" y2="11" />
+    </svg>
+  );
+}
+
+const REACTION_EMOJIS = ["🔥", "💀", "😂", "❤️", "👍", "😮"];
+
+interface MessageListProps {
+  messages: any[];
+  userPfps: Record<string, string>;
+  reactions: Record<number, Record<string, string[]>>;
+  activeReactionMsg: number | null;
+  username: string | null;
+  isAdmin: boolean;
+  isRoomOwner: boolean;
+  primaryColor: string;
+  onReply: (msg: any) => void;
+  onReact: (msgId: number, emoji: string) => void;
+  onSetActiveReaction: (id: number | null) => void;
+  onDelete: (id: number) => void;
+  onPin: (msg: any) => void;
+  onViewProfile: (user: string) => void;
+}
+
+const MessageList = React.memo(function MessageList({
+  messages, userPfps, reactions, activeReactionMsg, username,
+  isAdmin, isRoomOwner, primaryColor,
+  onReply, onReact, onSetActiveReaction, onDelete, onPin, onViewProfile,
+}: MessageListProps) {
+  return (
+    <>
+      {messages.map((msg, idx) => {
+        const rngBadge = getRngBadge(msg.username);
+        return (
+          <div key={msg.id || idx} className="text-xl break-words group relative flex items-start gap-2 animate-msg-in">
+            {userPfps[msg.username] && (
+              <img src={userPfps[msg.username]} alt={msg.username} className="w-8 h-8 rounded-full border-2 border-[#00ff00] flex-shrink-0" />
+            )}
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[#ff6f61] mr-2">
+                  [{msg.createdAt ? format(new Date(msg.createdAt), "HH:mm:ss") : "00:00:00"}]
+                </span>
+                <span className="text-[#00aa00] mr-2 font-bold">&lt;{msg.username || "Guest"}&gt;</span>
+                {rngBadge && (
+                  <span className="text-[10px] font-bold px-1 py-0.5 border mr-1 tracking-widest" style={{ borderColor: "#fbbf24", color: "#fbbf24", background: "#fbbf2415" }}>
+                    {rngBadge}
+                  </span>
+                )}
+                <button onClick={() => { playBeep(440, 0.05); onReply(msg); }} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff00] hover:text-[#ff6f61] ml-1" title="Reply">
+                  <Reply className="w-4 h-4" />
+                </button>
+                <button onClick={() => onSetActiveReaction(activeReactionMsg === msg.id ? null : msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff00] hover:text-[#ff6f61]" title="React">
+                  <Smile className="w-4 h-4" />
+                </button>
+                {(isAdmin || isRoomOwner) && msg.type === "text" && (
+                  <button onClick={() => onPin(msg)} className="opacity-0 group-hover:opacity-100 transition-opacity text-yellow-400 hover:text-yellow-300" title="Pin Message">
+                    <Pin className="w-4 h-4" />
+                  </button>
+                )}
+                <button onClick={() => onViewProfile(msg.username)} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00aa00] hover:text-[#00ff00] text-sm" title="View Profile">
+                  👤
+                </button>
+              </div>
+
+              {msg.type === "image" || msg.type === "gif" ? (
+                <div className="mt-2 mb-2 inline-block relative">
+                  <img src={msg.content} alt={msg.type === "gif" ? "GIF" : "User uploaded meme"} className="max-w-xs md:max-w-md border-2 border-[#00ff00] p-1 bg-black box-shadow-retro" />
+                  {isAdmin && (
+                    <button onClick={() => onDelete(msg.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity" title="Delete (Admin Only)">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : msg.type === "voice" ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <audio src={msg.content} controls className="max-w-xs border-2 border-[#00ff00] bg-black p-2 box-shadow-retro" style={{ filter: 'hue-rotate(90deg) saturate(2)' }} />
+                  {isAdmin && (
+                    <button onClick={() => onDelete(msg.id)} className="text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete (Admin Only)">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : msg.content.startsWith("🎲 ROLL:") ? (
+                <RngRoll content={msg.content} />
+              ) : msg.content.startsWith("🪙 FLIP:") ? (
+                <RngFlip content={msg.content} />
+              ) : msg.content.startsWith("🎰 ROULETTE:") ? (
+                <RngRoulette content={msg.content} />
+              ) : (
+                <span className={`chat-bubble mt-1 ${msg.username === username ? "chat-bubble-own" : "chat-bubble-other"}`} style={{ color: primaryColor }}>
+                  {msg.content}
+                </span>
+              )}
+
+              {msg.type === "text" && isAdmin && (
+                <button onClick={() => onDelete(msg.id)} className="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete (Admin Only)">
+                  <Trash2 className="w-4 h-4 inline" />
+                </button>
+              )}
+
+              {activeReactionMsg === msg.id && (
+                <div className="reaction-bar flex gap-1 mt-1 bg-black border-2 border-[#00ff00] p-1 w-fit">
+                  {REACTION_EMOJIS.map(emoji => (
+                    <button key={emoji} onClick={() => onReact(msg.id, emoji)} className="text-lg hover:scale-125 transition-transform">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {reactions[msg.id] && Object.keys(reactions[msg.id]).length > 0 && (
+                <div className="flex gap-1 mt-1 flex-wrap">
+                  {Object.entries(reactions[msg.id]).map(([emoji, users]) => (
+                    <button key={emoji} onClick={() => onReact(msg.id, emoji)}
+                      className={`text-sm border px-1 py-0.5 transition-colors ${(users as string[]).includes(username || '') ? 'border-[#ff6f61] bg-[#ff6f61]/20' : 'border-[#00ff00] bg-black/40'}`}
+                      title={(users as string[]).join(", ")}
+                    >
+                      {emoji} {(users as string[]).length}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
 export default function Home() {
   const [text, setText] = useState("");
   const [username, setUsername] = useState<string | null>(() => {
@@ -245,6 +456,8 @@ export default function Home() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showPong, setShowPong] = useState(false);
+  const [showRngMenu, setShowRngMenu] = useState(false);
   const [theme, setTheme] = useState<string>(() => localStorage.getItem("chatTheme") || "green");
 
   const THEMES: Record<string, { primary: string; accent: string; bg: string; label: string; emoji: string; className: string }> = {
@@ -254,38 +467,7 @@ export default function Home() {
     ice:      { primary: "#67e8f9", accent: "#818cf8", bg: "#00080f", label: "Ice",       emoji: "🔵", className: "theme-ice" },
     blood:    { primary: "#f87171", accent: "#fb923c", bg: "#0f0000", label: "Blood",     emoji: "🔴", className: "theme-blood" },
   };
-  // Theme-specific effects component
-  const ThemeEffects = ({ theme }: { theme: string }) => {
-    switch (theme) {
-      case 'green':
-        return <div className="cyber-grid" />;
-      case 'purple':
-        return <div className="synthwave-sun" />;
-      case 'blood':
-        return <div className="lightning" />;
-      default:
-        return null;
-    }
-  };
-  const FloatingParticles = ({ theme }: { theme: string }) => {
-    const T = THEMES[theme] || THEMES.green;
-    return (
-      <div className="theme-particles">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="particle"
-            style={{
-              left: `${Math.random() * 100}%`,
-              color: T.primary,
-              animationDelay: `${Math.random() * 20}s`,
-              animationDuration: `${15 + Math.random() * 10}s`,
-            }}
-          />
-        ))}
-      </div>
-    );
-  };
+
 
   const T = THEMES[theme] || THEMES.green;
 
@@ -294,7 +476,7 @@ export default function Home() {
     localStorage.setItem("chatTheme", t);
     setShowThemePicker(false);
   };
-  const REACTION_EMOJIS = ["🔥", "💀", "😂", "❤️", "👍", "😮"];
+  // moved to module level — see REACTION_EMOJIS below Home
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pfpInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -327,6 +509,10 @@ export default function Home() {
   const isAdmin = username?.toLowerCase() === "yofez009";
   const isRoomOwner = username === roomOwner;
 
+  // Stable callbacks passed to MessageList so React.memo works
+  const handleDeleteMsg = useCallback((id: number) => deleteMessage.mutate(id), [deleteMessage]);
+  const handleReplySet = useCallback((msg: any) => setReplyTo({ id: msg.id, username: msg.username, content: msg.content }), []);
+
   // Fetch pinned message when joining room
   useEffect(() => {
     if (!roomName) return;
@@ -345,12 +531,12 @@ export default function Home() {
   };
 
   // View another user's profile
-  const handleViewProfile = async (user: string) => {
+  const handleViewProfile = useCallback(async (user: string) => {
     const res = await fetch(`/api/users/${user}`);
     const data = await res.json();
     setViewedUserData(data);
     setShowUserProfile(user);
-  };
+  }, []);
 
   useEffect(() => {
     if (confettiTrigger > 0) {
@@ -520,15 +706,18 @@ export default function Home() {
         const result = Math.floor(Math.random() * clamped) + 1;
         const isNat = result === clamped;
         rngContent = `🎲 ROLL:${username}:${result}:${clamped}:${isNat ? "NAT" : ""}`;
+        bumpRng(username, "rolls");
       } else if (trimmed.startsWith("/coinflip")) {
         const result = Math.random() < 0.5 ? "HEADS" : "TAILS";
         rngContent = `🪙 FLIP:${username}:${result}`;
+        bumpRng(username, "flips");
       } else if (trimmed.startsWith("/roulette")) {
         const numbers = Array.from({ length: 37 }, (_, i) => i); // 0-36
         const result = numbers[Math.floor(Math.random() * numbers.length)];
         const red = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
         const color = result === 0 ? "GREEN" : red.includes(result) ? "RED" : "BLACK";
         rngContent = `🎰 ROULETTE:${username}:${result}:${color}`;
+        bumpRng(username, "roulettes");
       }
       sendMessage.mutate({ type: "text", content: rngContent, username }, {
         onSuccess: () => { setText(""); setReplyTo(null); }
@@ -571,6 +760,29 @@ export default function Home() {
       console.error('Ban error:', error);
       alert('Failed to ban user');
     }
+  };
+
+  const fireRng = (type: "roll" | "coinflip" | "roulette") => {
+    if (!username) return;
+    playBeep(880, 0.08);
+    let rngContent = "";
+    if (type === "roll") {
+      const result = Math.floor(Math.random() * 6) + 1;
+      rngContent = `🎲 ROLL:${username}:${result}:6:${result === 6 ? "NAT" : ""}`;
+      bumpRng(username, "rolls");
+    } else if (type === "coinflip") {
+      const result = Math.random() < 0.5 ? "HEADS" : "TAILS";
+      rngContent = `🪙 FLIP:${username}:${result}`;
+      bumpRng(username, "flips");
+    } else {
+      const result = Math.floor(Math.random() * 37);
+      const red = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+      const color = result === 0 ? "GREEN" : red.includes(result) ? "RED" : "BLACK";
+      rngContent = `🎰 ROULETTE:${username}:${result}:${color}`;
+      bumpRng(username, "roulettes");
+    }
+    sendMessage.mutate({ type: "text", content: rngContent, username });
+    setShowRngMenu(false);
   };
 
   const handleGifSelect = (gifUrl: string) => {
@@ -715,7 +927,7 @@ export default function Home() {
     setShowLeaderboard(true);
   };
 
-  const handleReact = (msgId: number, emoji: string) => {
+  const handleReact = useCallback((msgId: number, emoji: string) => {
     if (!username) return;
     playBeep(1100, 0.05);
     setReactions(prev => {
@@ -727,16 +939,16 @@ export default function Home() {
       return { ...prev, [msgId]: msgReactions };
     });
     setActiveReactionMsg(null);
-  };
+  }, [username]);
 
-  const handlePinMessage = async (msg: any) => {
+  const handlePinMessage = useCallback(async (msg: any) => {
     if (!isAdmin && !isRoomOwner) return;
     await fetch(`/api/rooms/${roomName}/pin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ msgId: msg.id, username: msg.username, content: msg.content, pinnedBy: username }),
     });
-  };
+  }, [isAdmin, isRoomOwner, roomName, username]);
 
   const handleUnpin = async () => {
     await fetch(`/api/rooms/${roomName}/pin`, { method: "DELETE" });
@@ -796,7 +1008,7 @@ export default function Home() {
       >
         <AnimatedBackground theme={theme} />
         <ThemeEffects theme={theme} />
-        <FloatingParticles theme={theme} />
+        <FloatingParticles color={T.primary} />
         <div className="absolute inset-0 scanlines-enhanced z-50 pointer-events-none mix-blend-overlay"></div>
         
         <div className="z-20 bg-black/90 border-4 border-[#00ff00] box-shadow-retro p-8 max-w-md w-full mx-4">
@@ -895,7 +1107,7 @@ export default function Home() {
       >
         <AnimatedBackground theme={theme} />
         <ThemeEffects theme={theme} />
-        <FloatingParticles theme={theme} />
+        <FloatingParticles color={T.primary} />
         <div className="absolute inset-0 scanlines-enhanced z-50 pointer-events-none mix-blend-overlay"></div>
         
         <div className="z-20 bg-black/90 border-4 border-[#00ff00] box-shadow-retro p-8 max-w-md w-full mx-4">
@@ -945,7 +1157,7 @@ export default function Home() {
     >
       <AnimatedBackground theme={theme} />
       <ThemeEffects theme={theme} />
-      <FloatingParticles theme={theme} />
+      <FloatingParticles color={T.primary} />
       <div className="absolute inset-0 scanlines-enhanced z-50 pointer-events-none mix-blend-overlay"></div>
 
       {announcement && (
@@ -1053,7 +1265,7 @@ export default function Home() {
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-black border-4 border-[#ff6f61] box-shadow-retro p-4 text-center">
           <p className="text-[#ff6f61] text-xl mb-3"><Swords className="inline w-5 h-5 mr-1" />{incomingChallenge.from} challenges you to {incomingChallenge.game.toUpperCase()}!</p>
           <div className="flex gap-2 justify-center">
-            <RetroButton onClick={() => { acceptChallenge(incomingChallenge.from); setShowGamesMenu(true); }}>ACCEPT ⚔️</RetroButton>
+            <RetroButton onClick={() => { acceptChallenge(incomingChallenge.from); setShowPong(true); }}>ACCEPT ⚔️</RetroButton>
             <RetroButton variant="secondary" onClick={() => declineChallenge(incomingChallenge.from)}>DECLINE</RetroButton>
           </div>
         </div>
@@ -1063,7 +1275,7 @@ export default function Home() {
       {challengeAccepted && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-black border-4 border-[#00ff00] box-shadow-retro p-4 text-center">
           <p className="text-[#00ff00] text-xl mb-2">⚔️ {challengeAccepted} accepted your challenge!</p>
-          <RetroButton onClick={() => { setChallengeAccepted(null); setShowGamesMenu(true); }}>PLAY ⚔️</RetroButton>
+          <RetroButton onClick={() => { setChallengeAccepted(null); setShowPong(true); }}>PLAY PONG ⚔️</RetroButton>
         </div>
       )}
 
@@ -1375,6 +1587,16 @@ export default function Home() {
                   ? <Minimize className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00]" />
                   : <Maximize className="w-6 h-6 drop-shadow-[0_0_6px_#00ff00]" />}
               </button>
+              {/* RNG buttons */}
+              <button onClick={() => fireRng("roll")} title="Roll d6" className="hover:scale-125 transition-transform text-lg leading-none" style={{ color: T.primary }}>
+                <DiceIcon />
+              </button>
+              <button onClick={() => fireRng("coinflip")} title="Coin flip" className="hover:scale-125 transition-transform text-lg leading-none" style={{ color: T.primary }}>
+                <CoinIcon />
+              </button>
+              <button onClick={() => fireRng("roulette")} title="Roulette" className="hover:scale-125 transition-transform text-lg leading-none" style={{ color: T.primary }}>
+                <RouletteIcon />
+              </button>
             </div>
           </header>
 
@@ -1409,141 +1631,22 @@ export default function Home() {
                   {"> No messages yet. Be the first to post!"}
                 </div>
               ) : (
-                messages.map((msg, idx) => (
-                  <div key={msg.id || idx} className="text-xl break-words group relative flex items-start gap-2 animate-msg-in">
-                    {userPfps[msg.username] && (
-                      <img 
-                        src={userPfps[msg.username]} 
-                        alt={msg.username}
-                        className="w-8 h-8 rounded-full border-2 border-[#00ff00] flex-shrink-0"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#ff6f61] mr-2">
-                          [{msg.createdAt ? format(new Date(msg.createdAt), "HH:mm:ss") : "00:00:00"}]
-                        </span>
-                        <span className="text-[#00aa00] mr-2 font-bold">&lt;{msg.username || "Guest"}&gt;</span>
-                        {/* Reply button */}
-                        <button
-                          onClick={() => { playBeep(440, 0.05); setReplyTo({ id: msg.id, username: msg.username, content: msg.content }); }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff00] hover:text-[#ff6f61] ml-1"
-                          title="Reply"
-                        >
-                          <Reply className="w-4 h-4" />
-                        </button>
-                        {/* Reaction trigger */}
-                        <button
-                          onClick={() => setActiveReactionMsg(activeReactionMsg === msg.id ? null : msg.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00ff00] hover:text-[#ff6f61]"
-                          title="React"
-                        >
-                          <Smile className="w-4 h-4" />
-                        </button>
-                        {/* Pin button — admin/owner only */}
-                        {(isAdmin || isRoomOwner) && msg.type === "text" && (
-                          <button
-                            onClick={() => handlePinMessage(msg)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-yellow-400 hover:text-yellow-300"
-                            title="Pin Message"
-                          >
-                            <Pin className="w-4 h-4" />
-                          </button>
-                        )}
-                        {/* Username click → profile */}
-                        <button
-                          onClick={() => handleViewProfile(msg.username)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#00aa00] hover:text-[#00ff00] text-sm"
-                          title="View Profile"
-                        >
-                          👤
-                        </button>
-                      </div>
-                    
-                      {msg.type === "image" || msg.type === "gif" ? (
-                        <div className="mt-2 mb-2 inline-block relative">
-                          <img 
-                            src={msg.content} 
-                            alt={msg.type === "gif" ? "GIF" : "User uploaded meme"} 
-                            className="max-w-xs md:max-w-md border-2 border-[#00ff00] p-1 bg-black box-shadow-retro"
-                          />
-                          {isAdmin && (
-                            <button
-                              onClick={() => deleteMessage.mutate(msg.id)}
-                              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Delete (Admin Only)"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ) : msg.type === "voice" ? (
-                        <div className="mt-2 flex items-center gap-2">
-                          <audio 
-                            src={msg.content} 
-                            controls 
-                            className="max-w-xs border-2 border-[#00ff00] bg-black p-2 box-shadow-retro"
-                            style={{ filter: 'hue-rotate(90deg) saturate(2)' }}
-                          />
-                          {isAdmin && (
-                            <button
-                              onClick={() => deleteMessage.mutate(msg.id)}
-                              className="text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Delete (Admin Only)"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ) : msg.content.startsWith("🎲 ROLL:") ? (
-                        <RngRoll content={msg.content} />
-                      ) : msg.content.startsWith("🪙 FLIP:") ? (
-                        <RngFlip content={msg.content} />
-                      ) : msg.content.startsWith("🎰 ROULETTE:") ? (
-                        <RngRoulette content={msg.content} />
-                      ) : (
-                        <span className="text-[#00ff00]">{msg.content}</span>
-                      )}
-                    
-                      {msg.type === "text" && isAdmin && (
-                        <button
-                          onClick={() => deleteMessage.mutate(msg.id)}
-                          className="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Delete (Admin Only)"
-                        >
-                          <Trash2 className="w-4 h-4 inline" />
-                        </button>
-                      )}
-
-                      {/* Reaction picker */}
-                      {activeReactionMsg === msg.id && (
-                        <div className="reaction-bar flex gap-1 mt-1 bg-black border-2 border-[#00ff00] p-1 w-fit">
-                          {REACTION_EMOJIS.map(emoji => (
-                            <button key={emoji} onClick={() => handleReact(msg.id, emoji)} className="text-lg hover:scale-125 transition-transform">
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Reactions display */}
-                      {reactions[msg.id] && Object.keys(reactions[msg.id]).length > 0 && (
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          {Object.entries(reactions[msg.id]).map(([emoji, users]) => (
-                            <button
-                              key={emoji}
-                              onClick={() => handleReact(msg.id, emoji)}
-                              className={`text-sm border px-1 py-0.5 transition-colors ${users.includes(username || '') ? 'border-[#ff6f61] bg-[#ff6f61]/20' : 'border-[#00ff00] bg-black/40'}`}
-                              title={users.join(", ")}
-                            >
-                              {emoji} {users.length}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
+                <MessageList
+                  messages={messages}
+                  userPfps={userPfps}
+                  reactions={reactions}
+                  activeReactionMsg={activeReactionMsg}
+                  username={username}
+                  isAdmin={isAdmin}
+                  isRoomOwner={isRoomOwner}
+                  primaryColor={T.primary}
+                  onReply={handleReplySet}
+                  onReact={handleReact}
+                  onSetActiveReaction={setActiveReactionMsg}
+                  onDelete={handleDeleteMsg}
+                  onPin={handlePinMessage}
+                  onViewProfile={handleViewProfile}
+                />
               )}
               
               {/* Typing Indicator */}
@@ -1709,14 +1812,32 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              {/* Add more games here */}
-              <div className="text-center text-[#00ff00] opacity-50 py-8 border-2 border-dashed border-[#00ff00]">
-                <Gamepad2 className="w-12 h-12 mx-auto mb-2 opacity-50 drop-shadow-[0_0_6px_#00ff00]" />
-                <p>MORE GAMES COMING SOON...</p>
+              <div
+                className="border-2 p-4 flex items-center gap-4 cursor-pointer hover:bg-[#00ff00]/10 transition-colors"
+                style={{ borderColor: T.primary }}
+                onClick={() => { setShowGamesMenu(false); setShowPong(true); }}
+              >
+                <span className="text-4xl">🏓</span>
+                <div>
+                  <p className="font-bold text-xl" style={{ color: T.primary }}>PONG PVP</p>
+                  <p className="text-sm opacity-60" style={{ color: T.primary }}>Challenge someone via their profile, or play solo. First to 7 wins.</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Pong Game */}
+      {showPong && username && (
+        <PongGame
+          username={username}
+          opponent={challengeAccepted || incomingChallenge?.from || "CPU"}
+          onClose={() => setShowPong(false)}
+          broadcastGame={broadcastGame}
+          gameData={wsGameData}
+          primaryColor={T.primary}
+        />
       )}
 
       {/* Mobile bottom nav */}

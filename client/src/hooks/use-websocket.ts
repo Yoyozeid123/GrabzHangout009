@@ -23,6 +23,7 @@ export function useWebSocket(username: string | null, room: string = "main") {
   const wsRef = useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingThrottleRef = useRef<number>(0);
   const reconnectRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
@@ -102,6 +103,9 @@ export function useWebSocket(username: string | null, room: string = "main") {
 
   const sendTyping = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN && username) {
+      const now = Date.now();
+      if (now - typingThrottleRef.current < 500) return;
+      typingThrottleRef.current = now;
       wsRef.current.send(JSON.stringify({ type: "typing", username }));
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
