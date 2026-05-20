@@ -711,7 +711,6 @@
   border-radius: 8px;
   padding: 8px 12px;
   margin: 4px 0;
-  backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 }
 
@@ -779,9 +778,8 @@
   background: rgba(0, 0, 0, 0.6);
   border: 1.5px solid currentColor;
   border-radius: 0;
-  box-shadow: 0 0 8px currentColor, inset 0 0 12px rgba(0,0,0,0.8);
-  backdrop-filter: blur(6px);
-  /* scanline overlay */
+  box-shadow: 0 0 6px currentColor;
+  transition: box-shadow 0.15s;
   background-image: repeating-linear-gradient(
     0deg,
     transparent,
@@ -789,10 +787,9 @@
     rgba(0,0,0,0.15) 2px,
     rgba(0,0,0,0.15) 4px
   );
-  transition: box-shadow 0.15s;
 }
 .chat-bubble:hover {
-  box-shadow: 0 0 16px currentColor, inset 0 0 12px rgba(0,0,0,0.6);
+  box-shadow: 0 0 12px currentColor;
 }
 /* tail — own messages (left side) */
 .chat-bubble-own::before {

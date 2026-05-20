@@ -461,6 +461,14 @@ const MessageList = React.memo(function MessageList({
   );
 });
 
+const THEMES: Record<string, { primary: string; accent: string; bg: string; label: string; emoji: string; className: string }> = {
+  green:    { primary: "#00ff41", accent: "#ff6f61", bg: "#0a0a0a", label: "Matrix",    emoji: "🟢", className: "theme-matrix" },
+  purple:   { primary: "#c084fc", accent: "#f472b6", bg: "#0d0010", label: "Synthwave", emoji: "🟣", className: "theme-synthwave" },
+  amber:    { primary: "#fbbf24", accent: "#f97316", bg: "#0c0800", label: "Amber",     emoji: "🟡", className: "theme-amber" },
+  ice:      { primary: "#67e8f9", accent: "#818cf8", bg: "#00080f", label: "Ice",       emoji: "🔵", className: "theme-ice" },
+  blood:    { primary: "#f87171", accent: "#fb923c", bg: "#0f0000", label: "Blood",     emoji: "🔴", className: "theme-blood" },
+};
+
 export default function Home() {
   const [text, setText] = useState("");
   const [username, setUsername] = useState<string | null>(() => {
@@ -513,14 +521,6 @@ export default function Home() {
   const [showPong, setShowPong] = useState(false);
   const [showRngMenu, setShowRngMenu] = useState(false);
   const [theme, setTheme] = useState<string>(() => localStorage.getItem("chatTheme") || "green");
-
-  const THEMES: Record<string, { primary: string; accent: string; bg: string; label: string; emoji: string; className: string }> = {
-    green:    { primary: "#00ff41", accent: "#ff6f61", bg: "#0a0a0a", label: "Matrix",    emoji: "🟢", className: "theme-matrix" },
-    purple:   { primary: "#c084fc", accent: "#f472b6", bg: "#0d0010", label: "Synthwave", emoji: "🟣", className: "theme-synthwave" },
-    amber:    { primary: "#fbbf24", accent: "#f97316", bg: "#0c0800", label: "Amber",     emoji: "🟡", className: "theme-amber" },
-    ice:      { primary: "#67e8f9", accent: "#818cf8", bg: "#00080f", label: "Ice",       emoji: "🔵", className: "theme-ice" },
-    blood:    { primary: "#f87171", accent: "#fb923c", bg: "#0f0000", label: "Blood",     emoji: "🔴", className: "theme-blood" },
-  };
 
 
   const T = THEMES[theme] || THEMES.green;
@@ -632,16 +632,21 @@ export default function Home() {
     }
   }, [messages, username]);
 
+  const fetchingPfpsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const fetchPfps = async () => {
-      const uniqueUsers = [...new Set(messages.map(m => m.username))].filter(u => !userPfps[u]);
-      await Promise.all(uniqueUsers.map(async user => {
-        const res = await fetch(`/api/users/${user}`);
-        const data = await res.json();
-        if (data.pfp) setUserPfps(prev => ({ ...prev, [user]: data.pfp }));
-      }));
-    };
-    fetchPfps();
+    const newUsers = [...new Set(messages.map(m => m.username))]
+      .filter(u => !userPfps[u] && !fetchingPfpsRef.current.has(u));
+    if (newUsers.length === 0) return;
+    newUsers.forEach(u => fetchingPfpsRef.current.add(u));
+    Promise.all(newUsers.map(async user => {
+      const res = await fetch(`/api/users/${user}`);
+      const data = await res.json();
+      return { user, pfp: data.pfp };
+    })).then(results => {
+      const updates: Record<string, string> = {};
+      for (const { user, pfp } of results) if (pfp) updates[user] = pfp;
+      if (Object.keys(updates).length > 0) setUserPfps(prev => ({ ...prev, ...updates }));
+    });
   }, [messages]);
 
   useEffect(() => {
