@@ -520,6 +520,7 @@ export default function Home() {
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showPong, setShowPong] = useState(false);
   const [showRngMenu, setShowRngMenu] = useState(false);
+  const [lastRngResult, setLastRngResult] = useState<RngResult | null>(null);
   const [theme, setTheme] = useState<string>(() => localStorage.getItem("chatTheme") || "green");
 
 
@@ -804,23 +805,26 @@ export default function Home() {
   const fireRng = (type: "roll" | "coinflip" | "roulette") => {
     if (!username) return;
     playBeep(880, 0.08);
+    let r: RngResult;
     if (type === "roll") {
       const result = Math.floor(Math.random() * 6) + 1;
       const isNat = result === 6;
       bumpRng(username, "rolls");
-      saveRngResult({ type: "roll", user: username, result: String(result), rare: isNat, label: isNat ? "★ NAT 6!" : `Rolled ${result}/6`, ts: Date.now() });
+      r = { type: "roll", user: username, result: String(result), rare: isNat, label: isNat ? "★ NAT 6!" : `Rolled ${result}/6`, ts: Date.now() };
     } else if (type === "coinflip") {
       const result = Math.random() < 0.5 ? "HEADS" : "TAILS";
       bumpRng(username, "flips");
-      saveRngResult({ type: "coinflip", user: username, result, rare: false, label: `Flipped ${result}`, ts: Date.now() });
+      r = { type: "coinflip", user: username, result, rare: false, label: `Flipped ${result}`, ts: Date.now() };
     } else {
       const result = Math.floor(Math.random() * 37);
       const red = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
       const color = result === 0 ? "GREEN" : red.includes(result) ? "RED" : "BLACK";
       bumpRng(username, "roulettes");
-      saveRngResult({ type: "roulette", user: username, result: `${result} ${color}`, rare: color === "GREEN", label: color === "GREEN" ? `★ GREEN ${result}!` : `${color} ${result}`, ts: Date.now() });
+      r = { type: "roulette", user: username, result: `${result} ${color}`, rare: color === "GREEN", label: color === "GREEN" ? `★ GREEN ${result}!` : `${color} ${result}`, ts: Date.now() };
     }
-    setShowRngMenu(true); // open panel to show result
+    saveRngResult(r);
+    setLastRngResult(r);
+    setShowRngMenu(true);
   };
 
   const handleGifSelect = (gifUrl: string) => {
@@ -1797,23 +1801,23 @@ export default function Home() {
             </div>
             {/* Roll buttons */}
             <div className="flex gap-2 p-3 border-b-2" style={{ borderColor: T.primary + "44" }}>
-              <button onClick={() => fireRng("roll")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity" style={{ borderColor: T.primary, color: T.primary }}>
-                <DiceIcon /> ROLL D6
+              <button onClick={() => fireRng("roll")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity flex items-center justify-center gap-1" style={{ borderColor: T.primary, color: T.primary }}>
+                <DiceIcon /> D6
               </button>
-              <button onClick={() => fireRng("coinflip")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity" style={{ borderColor: T.primary, color: T.primary }}>
-                <CoinIcon /> FLIP
+              <button onClick={() => fireRng("coinflip")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity flex items-center justify-center gap-1" style={{ borderColor: T.primary, color: T.primary }}>
+                <CoinIcon /> COIN
               </button>
-              <button onClick={() => fireRng("roulette")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity" style={{ borderColor: T.primary, color: T.primary }}>
+              <button onClick={() => fireRng("roulette")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity flex items-center justify-center gap-1" style={{ borderColor: T.primary, color: T.primary }}>
                 <RouletteIcon /> SPIN
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {/* Latest result */}
-              {(() => { const h = getRngHistory(username); return h[0] ? (
-                <div className={`mx-3 mt-3 p-3 border-2 text-center font-bold text-xl ${h[0].rare ? "border-yellow-400 text-yellow-300 animate-pulse" : ""}`} style={h[0].rare ? {} : { borderColor: T.primary, color: T.primary }}>
-                  {h[0].label}
+              {lastRngResult && (
+                <div className={`mx-3 mt-3 p-4 border-2 text-center font-bold text-2xl tracking-widest ${lastRngResult.rare ? "border-yellow-400 text-yellow-300 animate-pulse" : ""}`} style={lastRngResult.rare ? {} : { borderColor: T.primary, color: T.primary }}>
+                  {lastRngResult.label}
                 </div>
-              ) : null; })()}
+              )}
               {/* Rarity leaderboard */}
               <div className="px-3 pt-3">
                 <p className="text-xs font-bold tracking-widest mb-2 opacity-60" style={{ color: T.primary }}>★ RARITY LEADERBOARD</p>
