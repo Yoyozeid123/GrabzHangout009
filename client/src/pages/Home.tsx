@@ -1811,13 +1811,7 @@ export default function Home() {
             {/* Roll buttons */}
             <div className="flex gap-2 p-3 border-b-2" style={{ borderColor: T.primary + "44" }}>
               <button onClick={() => fireRng("roll")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity flex items-center justify-center gap-1" style={{ borderColor: T.primary, color: T.primary }}>
-                <DiceIcon /> D6
-              </button>
-              <button onClick={() => fireRng("coinflip")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity flex items-center justify-center gap-1" style={{ borderColor: T.primary, color: T.primary }}>
-                <CoinIcon /> COIN
-              </button>
-              <button onClick={() => fireRng("roulette")} className="flex-1 py-2 border-2 font-bold text-sm hover:opacity-80 transition-opacity flex items-center justify-center gap-1" style={{ borderColor: T.primary, color: T.primary }}>
-                <RouletteIcon /> SPIN
+                <DiceIcon /> ROLL D6
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
