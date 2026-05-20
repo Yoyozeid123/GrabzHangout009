@@ -984,13 +984,10 @@ export default function Home() {
   };
 
   const handleWarningEnd = () => {
-    setIntroStage('zoom');
-    setTimeout(() => {
-      setIntroStage('done');
-      setShowIntro(false);
-      setShowWelcome(true);
-      setTimeout(() => setShowWelcome(false), 5000);
-    }, 4000);
+    setIntroStage('done');
+    setShowIntro(false);
+    setShowWelcome(true);
+    setTimeout(() => setShowWelcome(false), 5000);
   };
 
   useEffect(() => {
@@ -1208,20 +1205,6 @@ export default function Home() {
           <div className="absolute bottom-4 right-4 text-[#00ff00] text-xl bg-black/80 px-4 py-2 border-2 border-[#00ff00] animate-pulse pointer-events-none">
             CLICK TO SKIP →
           </div>
-        </div>
-      )}
-
-      {showIntro && introStage === 'zoom' && (
-        <div className="fixed inset-0 z-[300] bg-black overflow-hidden">
-          <div 
-            className="w-full h-full"
-            style={{ 
-              backgroundImage: `url(${bgGif})`, 
-              backgroundSize: "cover", 
-              backgroundPosition: "center",
-              animation: "fadeInZoom 4s ease-out forwards"
-            }}
-          />
         </div>
       )}
 
