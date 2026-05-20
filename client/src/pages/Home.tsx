@@ -235,6 +235,8 @@ function getRngCounts(user: string) {
 function bumpRng(user: string, key: "rolls" | "flips" | "roulettes") {
   const k = `rng_${key}_${user}`;
   localStorage.setItem(k, String(parseInt(localStorage.getItem(k) || "0") + 1));
+  // Persist to server so others can see the badge
+  fetch(`/api/users/${user}/rng`, { method: "POST" }).catch(() => {});
 }
 
 // RNG result storage — keeps last 50 results per user, plus tracks rarest hits for leaderboard
@@ -268,14 +270,12 @@ function getRngLeaderboard(): RngResult[] {
     return score(b) - score(a);
   });
 }
-function getRngBadge(user: string): { tier: number; label: string; color: string } | null {
-  const { rolls, flips, roulettes } = getRngCounts(user);
-  const total = rolls + flips + roulettes;
-  if (total >= 500) return { tier: 5, label: "GAMBLER",     color: "#f43f5e" };
-  if (total >= 100) return { tier: 4, label: "HIGH ROLLER", color: "#a855f7" };
-  if (total >= 50)  return { tier: 3, label: "DICE LORD",   color: "#3b82f6" };
-  if (total >= 20)  return { tier: 2, label: "LUCKY",       color: "#22c55e" };
-  if (total >= 5)   return { tier: 1, label: "ROLLER",      color: "#fbbf24" };
+function getRngBadge(count: number): { tier: number; label: string; color: string } | null {
+  if (count >= 500) return { tier: 5, label: "GAMBLER",     color: "#f43f5e" };
+  if (count >= 100) return { tier: 4, label: "HIGH ROLLER", color: "#a855f7" };
+  if (count >= 50)  return { tier: 3, label: "DICE LORD",   color: "#3b82f6" };
+  if (count >= 20)  return { tier: 2, label: "LUCKY",       color: "#22c55e" };
+  if (count >= 5)   return { tier: 1, label: "ROLLER",      color: "#fbbf24" };
   return null;
 }
 
@@ -346,6 +346,7 @@ const REACTION_EMOJIS = ["🔥", "💀", "😂", "❤️", "👍", "😮"];
 interface MessageListProps {
   messages: any[];
   userPfps: Record<string, string>;
+  userRngCounts: Record<string, number>;
   reactions: Record<number, Record<string, string[]>>;
   activeReactionMsg: number | null;
   username: string | null;
@@ -361,14 +362,14 @@ interface MessageListProps {
 }
 
 const MessageList = React.memo(function MessageList({
-  messages, userPfps, reactions, activeReactionMsg, username,
+  messages, userPfps, userRngCounts, reactions, activeReactionMsg, username,
   isAdmin, isRoomOwner, primaryColor,
   onReply, onReact, onSetActiveReaction, onDelete, onPin, onViewProfile,
 }: MessageListProps) {
   return (
     <>
       {messages.map((msg, idx) => {
-        const rngBadge = getRngBadge(msg.username);
+        const rngBadge = getRngBadge(userRngCounts[msg.username] || 0);
         return (
           <div key={msg.id || idx} className="text-xl break-words group relative flex items-start gap-2 animate-msg-in">
             {userPfps[msg.username] && (
@@ -489,6 +490,7 @@ export default function Home() {
   const [showGamesMenu, setShowGamesMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [userPfps, setUserPfps] = useState<Record<string, string>>({});
+  const [userRngCounts, setUserRngCounts] = useState<Record<string, number>>({});
   const [showProfile, setShowProfile] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [showIntro, setShowIntro] = useState(true);
@@ -642,11 +644,16 @@ export default function Home() {
     Promise.all(newUsers.map(async user => {
       const res = await fetch(`/api/users/${user}`);
       const data = await res.json();
-      return { user, pfp: data.pfp };
+      return { user, pfp: data.pfp, rngCount: data.rngCount || 0 };
     })).then(results => {
-      const updates: Record<string, string> = {};
-      for (const { user, pfp } of results) if (pfp) updates[user] = pfp;
-      if (Object.keys(updates).length > 0) setUserPfps(prev => ({ ...prev, ...updates }));
+      const pfpUpdates: Record<string, string> = {};
+      const rngUpdates: Record<string, number> = {};
+      for (const { user, pfp, rngCount } of results) {
+        if (pfp) pfpUpdates[user] = pfp;
+        if (rngCount > 0) rngUpdates[user] = rngCount;
+      }
+      if (Object.keys(pfpUpdates).length > 0) setUserPfps(prev => ({ ...prev, ...pfpUpdates }));
+      if (Object.keys(rngUpdates).length > 0) setUserRngCounts(prev => ({ ...prev, ...rngUpdates }));
     });
   }, [messages]);
 
@@ -824,6 +831,7 @@ export default function Home() {
     }
     saveRngResult(r);
     setLastRngResult(r);
+    setUserRngCounts(prev => ({ ...prev, [username]: (prev[username] || 0) + 1 }));
     setShowRngMenu(true);
   };
 
@@ -1597,6 +1605,7 @@ export default function Home() {
                 <MessageList
                   messages={messages}
                   userPfps={userPfps}
+                  userRngCounts={userRngCounts}
                   reactions={reactions}
                   activeReactionMsg={activeReactionMsg}
                   username={username}

@@ -430,6 +430,11 @@ export async function registerRoutes(
   });
 
   // User bio
+  app.post("/api/users/:username/rng", async (req, res) => {
+    await storage.incrementRngCount(req.params.username);
+    res.json({ ok: true });
+  });
+
   app.post("/api/users/:username/bio", async (req, res) => {
     const { bio } = req.body;
     if (typeof bio !== "string") return res.status(400).json({ message: "Bio required" });

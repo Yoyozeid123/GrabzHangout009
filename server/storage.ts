@@ -11,6 +11,7 @@ export interface IStorage {
   upsertUser(username: string, pfp?: string): Promise<User>;
   updateBio(username: string, bio: string): Promise<void>;
   incrementMessageCount(username: string): Promise<void>;
+  incrementRngCount(username: string): Promise<void>;
   getLeaderboard(): Promise<User[]>;
   banUser(username: string, room: string, bannedBy: string, ipAddress?: string): Promise<BannedUser>;
   isBanned(username: string, room: string, ipAddress?: string): Promise<boolean>;
@@ -74,6 +75,12 @@ export class DatabaseStorage implements IStorage {
     await db.insert(users)
       .values({ username, messageCount: 1 })
       .onConflictDoUpdate({ target: users.username, set: { messageCount: sql`${users.messageCount} + 1` } });
+  }
+
+  async incrementRngCount(username: string): Promise<void> {
+    await db.insert(users)
+      .values({ username, rngCount: 1 })
+      .onConflictDoUpdate({ target: users.username, set: { rngCount: sql`${users.rngCount} + 1` } });
   }
 
   async getLeaderboard(): Promise<User[]> {

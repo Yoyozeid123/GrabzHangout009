@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   pfp: text("pfp"),
   bio: text("bio").default(""),
   messageCount: integer("message_count").default(0),
+  rngCount: integer("rng_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
