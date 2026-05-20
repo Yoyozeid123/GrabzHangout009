@@ -6,6 +6,7 @@ import { useWebSocket, type UserStatus } from "@/hooks/use-websocket";
 import { RetroButton } from "@/components/RetroButton";
 import { RetroInput } from "@/components/RetroInput";
 import { GifPicker } from "@/components/GifPicker";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 // Static Assets mapped via Vite aliases
 import bgGif from "@assets/BG_1771938204124.gif";
@@ -152,6 +153,49 @@ function BanList() {
   );
 }
 
+function RngRoll({ content }: { content: string }) {
+  const [, user, result, max, nat] = content.replace("🎲 ROLL:", "").split(":");
+  const pct = Math.round((parseInt(result) / parseInt(max)) * 100);
+  const isNat = nat === "NAT";
+  return (
+    <span className={`inline-flex items-center gap-2 px-3 py-1 border-2 font-bold ${isNat ? "border-yellow-400 text-yellow-300 bg-yellow-900/30 animate-pulse" : "border-[#00ff00] text-[#00ff00] bg-black/40"}`}>
+      🎲 <span className="opacity-60">{user} rolled</span>
+      <span className="text-2xl">{result}</span>
+      <span className="opacity-50">/ {max}</span>
+      <span className="text-xs opacity-60 ml-1">[{pct}%]</span>
+      {isNat && <span className="text-yellow-300 text-xs ml-1 font-bold tracking-widest">★ NAT {max}! ★</span>}
+    </span>
+  );
+}
+
+function RngFlip({ content }: { content: string }) {
+  const [, user, result] = content.replace("🪙 FLIP:", "").split(":");
+  const isHeads = result === "HEADS";
+  return (
+    <span className={`inline-flex items-center gap-2 px-3 py-1 border-2 font-bold ${isHeads ? "border-yellow-400 text-yellow-300 bg-yellow-900/30" : "border-gray-400 text-gray-300 bg-gray-900/30"}`}>
+      🪙 <span className="opacity-60">{user} flipped</span>
+      <span className="text-xl tracking-widest">{result}</span>
+    </span>
+  );
+}
+
+function RngRoulette({ content }: { content: string }) {
+  const [, user, number, color] = content.replace("🎰 ROULETTE:", "").split(":");
+  const colorMap: Record<string, string> = {
+    RED: "border-red-500 text-red-400 bg-red-900/30",
+    BLACK: "border-gray-500 text-gray-300 bg-gray-900/30",
+    GREEN: "border-green-400 text-green-300 bg-green-900/30 animate-pulse",
+  };
+  return (
+    <span className={`inline-flex items-center gap-2 px-3 py-1 border-2 font-bold ${colorMap[color] || ""}`}>
+      🎰 <span className="opacity-60">{user} spun</span>
+      <span className="text-2xl">{number}</span>
+      <span className="text-sm tracking-widest">{color}</span>
+      {color === "GREEN" && <span className="text-xs ml-1 font-bold">★ JACKPOT! ★</span>}
+    </span>
+  );
+}
+
 export default function Home() {
   const [text, setText] = useState("");
   const [username, setUsername] = useState<string | null>(() => {
@@ -203,13 +247,46 @@ export default function Home() {
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [theme, setTheme] = useState<string>(() => localStorage.getItem("chatTheme") || "green");
 
-  const THEMES: Record<string, { primary: string; accent: string; bg: string; label: string; emoji: string }> = {
-    green:    { primary: "#00ff41", accent: "#ff6f61", bg: "#0a0a0a", label: "Matrix",    emoji: "🟢" },
-    purple:   { primary: "#c084fc", accent: "#f472b6", bg: "#0d0010", label: "Synthwave", emoji: "🟣" },
-    amber:    { primary: "#fbbf24", accent: "#f97316", bg: "#0c0800", label: "Amber",     emoji: "🟡" },
-    ice:      { primary: "#67e8f9", accent: "#818cf8", bg: "#00080f", label: "Ice",       emoji: "🔵" },
-    blood:    { primary: "#f87171", accent: "#fb923c", bg: "#0f0000", label: "Blood",     emoji: "🔴" },
+  const THEMES: Record<string, { primary: string; accent: string; bg: string; label: string; emoji: string; className: string }> = {
+    green:    { primary: "#00ff41", accent: "#ff6f61", bg: "#0a0a0a", label: "Matrix",    emoji: "🟢", className: "theme-matrix" },
+    purple:   { primary: "#c084fc", accent: "#f472b6", bg: "#0d0010", label: "Synthwave", emoji: "🟣", className: "theme-synthwave" },
+    amber:    { primary: "#fbbf24", accent: "#f97316", bg: "#0c0800", label: "Amber",     emoji: "🟡", className: "theme-amber" },
+    ice:      { primary: "#67e8f9", accent: "#818cf8", bg: "#00080f", label: "Ice",       emoji: "🔵", className: "theme-ice" },
+    blood:    { primary: "#f87171", accent: "#fb923c", bg: "#0f0000", label: "Blood",     emoji: "🔴", className: "theme-blood" },
   };
+  // Theme-specific effects component
+  const ThemeEffects = ({ theme }: { theme: string }) => {
+    switch (theme) {
+      case 'green':
+        return <div className="cyber-grid" />;
+      case 'purple':
+        return <div className="synthwave-sun" />;
+      case 'blood':
+        return <div className="lightning" />;
+      default:
+        return null;
+    }
+  };
+  const FloatingParticles = ({ theme }: { theme: string }) => {
+    const T = THEMES[theme] || THEMES.green;
+    return (
+      <div className="theme-particles">
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={i}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              color: T.primary,
+              animationDelay: `${Math.random() * 20}s`,
+              animationDuration: `${15 + Math.random() * 10}s`,
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
   const T = THEMES[theme] || THEMES.green;
 
   const applyTheme = (t: string) => {
@@ -431,7 +508,35 @@ export default function Home() {
     e.preventDefault();
     if (!text.trim() || sendMessage.isPending || !username) return;
     playBeep(660, 0.06);
-    const content = replyTo ? `↩ @${replyTo.username}: "${replyTo.content.slice(0, 40)}"  ${text.trim()}` : text.trim();
+
+    // RNG slash commands
+    const trimmed = text.trim();
+    if (trimmed.startsWith("/roll") || trimmed.startsWith("/coinflip") || trimmed.startsWith("/roulette")) {
+      let rngContent = "";
+      if (trimmed.startsWith("/roll")) {
+        const parts = trimmed.split(" ");
+        const max = parseInt(parts[1]) || 6;
+        const clamped = Math.min(Math.max(max, 2), 1000000);
+        const result = Math.floor(Math.random() * clamped) + 1;
+        const isNat = result === clamped;
+        rngContent = `🎲 ROLL:${username}:${result}:${clamped}:${isNat ? "NAT" : ""}`;
+      } else if (trimmed.startsWith("/coinflip")) {
+        const result = Math.random() < 0.5 ? "HEADS" : "TAILS";
+        rngContent = `🪙 FLIP:${username}:${result}`;
+      } else if (trimmed.startsWith("/roulette")) {
+        const numbers = Array.from({ length: 37 }, (_, i) => i); // 0-36
+        const result = numbers[Math.floor(Math.random() * numbers.length)];
+        const red = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+        const color = result === 0 ? "GREEN" : red.includes(result) ? "RED" : "BLACK";
+        rngContent = `🎰 ROULETTE:${username}:${result}:${color}`;
+      }
+      sendMessage.mutate({ type: "text", content: rngContent, username }, {
+        onSuccess: () => { setText(""); setReplyTo(null); }
+      });
+      return;
+    }
+
+    const content = replyTo ? `↩ @${replyTo.username}: "${replyTo.content.slice(0, 40)}"  ${trimmed}` : trimmed;
     sendMessage.mutate({ type: "text", content, username }, {
       onSuccess: () => { setText(""); setReplyTo(null); }
     });
@@ -687,10 +792,12 @@ export default function Home() {
   if (showRoomSelect) {
     return (
       <div 
-        className="min-h-screen w-full relative overflow-hidden flex items-center justify-center"
-        style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
+        className={`min-h-screen w-full relative overflow-hidden flex items-center justify-center ${T.className}`}
       >
-        <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+        <AnimatedBackground theme={theme} />
+        <ThemeEffects theme={theme} />
+        <FloatingParticles theme={theme} />
+        <div className="absolute inset-0 scanlines-enhanced z-50 pointer-events-none mix-blend-overlay"></div>
         
         <div className="z-20 bg-black/90 border-4 border-[#00ff00] box-shadow-retro p-8 max-w-md w-full mx-4">
           <div className="text-center mb-6">
@@ -784,10 +891,12 @@ export default function Home() {
   if (!username) {
     return (
       <div 
-        className="min-h-screen w-full relative overflow-hidden flex items-center justify-center"
-        style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
+        className={`min-h-screen w-full relative overflow-hidden flex items-center justify-center ${T.className}`}
       >
-        <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+        <AnimatedBackground theme={theme} />
+        <ThemeEffects theme={theme} />
+        <FloatingParticles theme={theme} />
+        <div className="absolute inset-0 scanlines-enhanced z-50 pointer-events-none mix-blend-overlay"></div>
         
         <div className="z-20 bg-black/90 border-4 border-[#00ff00] box-shadow-retro p-8 max-w-md w-full mx-4">
           <div className="text-center mb-6">
@@ -832,10 +941,12 @@ export default function Home() {
 
   return (
     <div 
-      className={`min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black ${!showIntro && introStage === 'done' ? 'animate-fade-in' : ''}`}
-      style={{ backgroundImage: `url(${bgGif})`, backgroundSize: "cover", backgroundAttachment: "fixed", backgroundPosition: "center" }}
+      className={`min-h-screen w-full relative overflow-hidden flex flex-col items-center selection:bg-[#ff6f61] selection:text-black ${!showIntro && introStage === 'done' ? 'animate-fade-in' : ''} ${T.className}`}
     >
-      <div className="absolute inset-0 scanlines z-50 pointer-events-none mix-blend-overlay"></div>
+      <AnimatedBackground theme={theme} />
+      <ThemeEffects theme={theme} />
+      <FloatingParticles theme={theme} />
+      <div className="absolute inset-0 scanlines-enhanced z-50 pointer-events-none mix-blend-overlay"></div>
 
       {announcement && (
         <div className="fixed top-0 left-0 right-0 z-[500] bg-red-500 text-white text-center py-2 font-bold text-sm flex items-center justify-center gap-4">
@@ -1201,8 +1312,8 @@ export default function Home() {
                 alt="Dancing Frog" 
               />
             </div>
-            <div className="mt-2 text-xl md:text-2xl text-shadow-neon bg-black/60 px-4 py-1 border border-[#00ff00] flex items-center gap-3 self-start">
-              <span className="blinking-cursor">EST. 1999 :: {onlineCount} USERS ONLINE</span>
+            <div className="mt-2 text-xl md:text-2xl text-shadow-neon bg-black/60 px-4 py-1 border border-[#00ff00] flex items-center gap-3 self-start neon-border holographic">
+              <span className="blinking-cursor glitch-text" data-text={`EST. 1999 :: ${onlineCount} USERS ONLINE`}>EST. 1999 :: {onlineCount} USERS ONLINE</span>
               <button 
                 onClick={() => setShowUserList(!showUserList)}
                 className="md:hidden group relative text-[#00ff00] hover:text-[#ff6f61] transition-colors duration-150"
@@ -1283,9 +1394,9 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex-1 flex flex-col bg-black/85 border-4 box-shadow-retro mb-2 min-h-0" style={{ borderColor: T.primary }}>
+          <div className="flex-1 flex flex-col bg-black/85 border-4 box-shadow-retro mb-2 min-h-0 neon-border" style={{ borderColor: T.primary }}>
             
-            <div className="text-black px-3 py-1 flex items-center gap-2 font-bold text-lg" style={{ background: T.primary }}>
+            <div className="text-black px-3 py-1 flex items-center gap-2 font-bold text-lg holographic" style={{ background: T.primary }}>
               <TerminalSquare className="w-5 h-5" />
               <span>C:\CHAT\MAIN.EXE</span>
             </div>
@@ -1384,6 +1495,12 @@ export default function Home() {
                             </button>
                           )}
                         </div>
+                      ) : msg.content.startsWith("🎲 ROLL:") ? (
+                        <RngRoll content={msg.content} />
+                      ) : msg.content.startsWith("🪙 FLIP:") ? (
+                        <RngFlip content={msg.content} />
+                      ) : msg.content.startsWith("🎰 ROULETTE:") ? (
+                        <RngRoulette content={msg.content} />
                       ) : (
                         <span className="text-[#00ff00]">{msg.content}</span>
                       )}

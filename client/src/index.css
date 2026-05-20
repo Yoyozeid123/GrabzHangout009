@@ -20,6 +20,7 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'VT323', monospace;
     cursor: crosshair;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, .font-retro {
@@ -175,4 +176,597 @@
 @keyframes popIn {
   0% { opacity: 0; transform: scale(0.7) translateY(4px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* EPIC ANIMATED BACKGROUNDS */
+
+/* Matrix Theme - Digital Rain */
+.theme-matrix {
+  background: linear-gradient(135deg, #000000 0%, #001100 50%, #000000 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-matrix::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(0, 255, 65, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 255, 65, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(0, 255, 65, 0.05) 0%, transparent 50%);
+  animation: matrixPulse 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.theme-matrix::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(90deg, transparent 0%, rgba(0, 255, 65, 0.03) 50%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, rgba(0, 255, 65, 0.02) 50%, transparent 100%);
+  background-size: 100px 100px, 50px 50px;
+  animation: matrixGrid 20s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes matrixPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes matrixGrid {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(100px, 50px); }
+}
+
+/* Synthwave Theme - Neon City */
+.theme-synthwave {
+  background: linear-gradient(135deg, #0d0010 0%, #2d1b69 25%, #8b5cf6 50%, #2d1b69 75%, #0d0010 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-synthwave::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(ellipse at top, rgba(139, 92, 246, 0.15) 0%, transparent 70%),
+    radial-gradient(ellipse at bottom, rgba(244, 114, 182, 0.1) 0%, transparent 70%);
+  animation: synthwaveGlow 6s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.theme-synthwave::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 92, 246, 0.1) 2px,
+      rgba(139, 92, 246, 0.1) 4px
+    );
+  animation: synthwaveLines 3s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes synthwaveGlow {
+  0% { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes synthwaveLines {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+/* Amber Theme - Desert Storm */
+.theme-amber {
+  background: linear-gradient(135deg, #0c0800 0%, #1a1000 25%, #2d1f00 50%, #1a1000 75%, #0c0800 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-amber::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 30% 20%, rgba(251, 191, 36, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(249, 115, 22, 0.08) 0%, transparent 50%);
+  animation: amberStorm 10s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.theme-amber::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(45deg, transparent 0%, rgba(251, 191, 36, 0.02) 50%, transparent 100%);
+  background-size: 200px 200px;
+  animation: amberDrift 15s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes amberStorm {
+  0%, 100% { opacity: 0.3; transform: rotate(0deg); }
+  50% { opacity: 0.7; transform: rotate(1deg); }
+}
+
+@keyframes amberDrift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-200px, -200px) rotate(360deg); }
+}
+
+/* Ice Theme - Frozen Wasteland */
+.theme-ice {
+  background: linear-gradient(135deg, #00080f 0%, #001a2e 25%, #003d5c 50%, #001a2e 75%, #00080f 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-ice::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(103, 232, 249, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(129, 140, 248, 0.08) 0%, transparent 50%);
+  animation: iceCrystal 7s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.theme-ice::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(60deg, transparent 0%, rgba(103, 232, 249, 0.03) 50%, transparent 100%),
+    linear-gradient(-60deg, transparent 0%, rgba(129, 140, 248, 0.02) 50%, transparent 100%);
+  background-size: 150px 150px, 100px 100px;
+  animation: iceShards 12s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes iceCrystal {
+  0% { opacity: 0.4; transform: scale(1) rotate(0deg); }
+  100% { opacity: 0.8; transform: scale(1.1) rotate(2deg); }
+}
+
+@keyframes iceShards {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(150px, 100px); }
+}
+
+/* Blood Theme - Crimson Nightmare */
+.theme-blood {
+  background: linear-gradient(135deg, #0f0000 0%, #2d0000 25%, #4a0000 50%, #2d0000 75%, #0f0000 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-blood::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 40% 60%, rgba(248, 113, 113, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 60% 40%, rgba(251, 146, 60, 0.08) 0%, transparent 50%);
+  animation: bloodPulse 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.theme-blood::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(ellipse at center, transparent 0%, rgba(248, 113, 113, 0.05) 50%, transparent 100%);
+  background-size: 300px 300px;
+  animation: bloodFlow 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes bloodPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes bloodFlow {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.2) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+/* Floating particles for all themes */
+.theme-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: float 20s linear infinite;
+}
+
+.particle:nth-child(odd) {
+  animation-duration: 25s;
+  animation-delay: -5s;
+}
+
+.particle:nth-child(even) {
+  animation-duration: 15s;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100px) translateX(100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Enhanced scanlines with theme colors */
+.scanlines-enhanced {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.4)
+  );
+  background-size: 100% 3px;
+  pointer-events: none;
+  animation: scanlineMove 0.1s linear infinite;
+}
+
+@keyframes scanlineMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 3px; }
+}
+
+/* Epic glitch effects */
+.glitch-text {
+  position: relative;
+  animation: glitch 2s infinite;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch-text::before {
+  animation: glitch-1 0.5s infinite;
+  color: #ff0000;
+  z-index: -1;
+}
+
+.glitch-text::after {
+  animation: glitch-2 0.5s infinite;
+  color: #00ffff;
+  z-index: -2;
+}
+
+@keyframes glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+}
+
+@keyframes glitch-1 {
+  0%, 100% { transform: translate(0); }
+  10% { transform: translate(-2px, -2px); }
+  20% { transform: translate(2px, 2px); }
+  30% { transform: translate(-2px, 2px); }
+  40% { transform: translate(2px, -2px); }
+  50% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  70% { transform: translate(-2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  90% { transform: translate(-2px, -2px); }
+}
+
+@keyframes glitch-2 {
+  0%, 100% { transform: translate(0); }
+  10% { transform: translate(2px, 2px); }
+  20% { transform: translate(-2px, -2px); }
+  30% { transform: translate(2px, -2px); }
+  40% { transform: translate(-2px, 2px); }
+  50% { transform: translate(2px, 2px); }
+  60% { transform: translate(-2px, -2px); }
+  70% { transform: translate(2px, -2px); }
+  80% { transform: translate(-2px, 2px); }
+  90% { transform: translate(2px, 2px); }
+}
+
+/* Holographic effect */
+.holographic {
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+  background-size: 200% 200%;
+  animation: hologram 3s ease-in-out infinite;
+}
+
+@keyframes hologram {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Neon border glow */
+.neon-border {
+  position: relative;
+  border: 2px solid currentColor;
+}
+
+.neon-border::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: linear-gradient(45deg, currentColor, transparent, currentColor);
+  border-radius: inherit;
+  opacity: 0.3;
+  animation: neonPulse 2s ease-in-out infinite alternate;
+  z-index: -1;
+}
+
+@keyframes neonPulse {
+  0% { opacity: 0.3; transform: scale(1); }
+  100% { opacity: 0.8; transform: scale(1.02); }
+}
+
+/* Lightning effect for blood theme */
+.lightning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(248, 113, 113, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  animation: lightning 8s infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes lightning {
+  0%, 90%, 100% { opacity: 0; }
+  91%, 92%, 93% { opacity: 1; }
+}
+
+/* Cyber grid for matrix theme */
+.cyber-grid {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 255, 65, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 65, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+/* Synthwave sun */
+.synthwave-sun {
+  position: fixed;
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, rgba(244, 114, 182, 0.2) 50%, transparent 70%);
+  border-radius: 50%;
+  animation: synthwaveSun 10s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Enhanced button hover effects */
+.retro-button-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.retro-button-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.retro-button-enhanced:hover::before {
+  left: 100%;
+}
+
+.retro-button-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Pulsing glow effect */
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { 
+    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+  }
+  100% { 
+    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+/* Typing indicator enhancement */
+.typing-dots {
+  display: inline-block;
+}
+
+.typing-dots::after {
+  content: '';
+  animation: typingDots 1.5s infinite;
+}
+
+@keyframes typingDots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+
+/* Message bubble effects */
+.message-bubble {
+  position: relative;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.message-bubble:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateX(4px);
+}
+
+.message-bubble::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid currentColor;
+}
+
+/* Enhanced scrollbar for different themes */
+.retro-scrollbar-themed::-webkit-scrollbar {
+  width: 12px;
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.retro-scrollbar-themed::-webkit-scrollbar-track {
+  background: linear-gradient(45deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.8));
+  border-radius: 6px;
+}
+
+.retro-scrollbar-themed::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, currentColor, transparent);
+  border-radius: 6px;
+  border: 1px solid currentColor;
+}
+
+.retro-scrollbar-themed::-webkit-scrollbar-thumb:hover {
+  background: currentColor;
+}
+
+@keyframes matrixRain {
+  0% { transform: translateY(-100vh); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes synthGrid {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 21px; }
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-30px) scale(1.1); }
 }
